@@ -23,18 +23,13 @@ export class MainMenu extends Scene
         this.cameras.main.setBackgroundColor(0x0f141d);
 
         // Title
-        this.add.text(width / 2, height * 0.2, "Get a Job!", {
-            fontFamily: 'Bangers', fontSize: 70, color: '#f4d03f', fontStyle: 'bold',
-            stroke: '#000000', strokeThickness: 8,
-            align: 'center'
-        }).setOrigin(0.5);
+        const title = this.add.image(width / 2, height / 2, "title").setOrigin(0.5);
+        const scalex = width / title.width;
+        const scaley = width / title.width;
+        const scaled = Math.max(scalex, scaley)
+        title.setScale(scaled);
 
         // Subtitle
-        this.add.text(width / 2, height * 0.33, 'A Tactical Job Search Adventure', {
-            fontFamily: 'Courier New, monospace',
-            fontSize: '20px',
-            color: '#95a5a6'
-        }).setOrigin(0.5);
 
         // Option pointer
         this.pointer = this.add.text(0, 0, '▶', {
@@ -44,10 +39,10 @@ export class MainMenu extends Scene
         }).setOrigin(1, 0.5);
 
         // Create menu buttons
-        const startY = height * 0.6;
-        const spacing = 50;
+        const startX = width * 0.2;
+        const spacing = 800;
         this.menuButtons.forEach((label, index) => {
-            const itemText = this.add.text(width / 2, startY + (index * spacing), label, {
+            const itemText = this.add.text(startX + (index * spacing), height * 0.9, label, {
                 fontFamily: 'Courier New, monospace',
                 fontSize: '26px',
                 color: '#ecf0f1'
@@ -84,13 +79,13 @@ export class MainMenu extends Scene
         if (!this.input.keyboard) return;
 
         // Navigate Up
-        if (Input.Keyboard.JustDown(this.arrows.up)) {
+        if (Input.Keyboard.JustDown(this.arrows.up) || Input.Keyboard.JustDown(this.arrows.left)) {
             this.selected = (this.selected - 1 + this.menuButtons.length) % this.menuButtons.length;
             this.updateMenuHighlight();
         }
 
         // Navigate Down
-        if (Input.Keyboard.JustDown(this.arrows.down)) {
+        if (Input.Keyboard.JustDown(this.arrows.down) || Input.Keyboard.JustDown(this.arrows.right)) {
             this.selected = (this.selected + 1) % this.menuButtons.length;
             this.updateMenuHighlight();
         }

@@ -29,6 +29,16 @@ export class MainMenu extends Scene
         const scaled = Math.max(scalex, scaley)
         title.setScale(scaled);
 
+        // 1. Smooth Floating / Bobbing
+        this.tweens.add({
+            targets: title,
+            y: title.y - 12,               // Move up slightly
+            duration: 2000,                // 2 seconds
+            ease: 'Sine.easeInOut',
+            yoyo: true,                    // Return down
+            repeat: -1                     // Loop forever
+        });
+
         // Subtitle
 
         // Option pointer

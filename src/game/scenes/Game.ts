@@ -8,17 +8,31 @@ export class Game extends Scene
     gameText: Phaser.GameObjects.Text;
     private player!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     private arrows!: Phaser.Types.Input.Keyboard.CursorKeys;
-    private readonly SPEED = 160;
+    private readonly SPEED = 200;
 
     constructor ()
     {
         super('Game');
     }
 
+    preload() 
+    {
+        // Load tilemap (room layout) and tileset (building blocks)
+        this.load.image('tiles', '/scene_tilemaps/Cottage_Tileset/Cottage_Tileset.png');
+        this.load.tilemapTiledJSON('tiles_map', '/assets/test.json');
+    }
+    
     create ()
     {
         this.camera = this.cameras.main;
-        this.camera.setBackgroundColor(0x00ff00);
+
+        // Create map and tileset
+        const tilemap = this.make.tilemap({key: "tiles_map"});
+        const tileset = tilemap.addTilesetImage("Cottage", "tiles", 32, 32, 0, 0);
+        if (!tileset) return;
+
+        const floorLayer = tilemap.createLayer('Tile Layer 1', tileset, 0, 0);
+        const wallsLayer = tilemap.createLayer('Bump', tileset, 0, 0);
 
         // Placeholder texture for the player sprite
         const gfx = this.make.graphics({ x: 0, y: 0 });
@@ -32,7 +46,19 @@ export class Game extends Scene
             this.scale.height / 2,
             'player_box'
         );
+
+        // Set collisions so character bumps into walls
+        wallsLayer?.setCollisionByExclusion([-1]);
         this.player.setCollideWorldBounds(true);
+        this.physics.world.setBounds(0, 0, tilemap.widthInPixels, tilemap.heightInPixels);
+        
+        if (wallsLayer) {
+            this.physics.add.collider(this.player, wallsLayer);
+        }
+
+        this.camera.setBounds(0, 0, tilemap.widthInPixels, tilemap.heightInPixels);
+        this.camera.setZoom(2);
+        this.camera.startFollow(this.player, true, 0.1, 0.1);
 
         // Arrow key controls
         if (this.input.keyboard) {

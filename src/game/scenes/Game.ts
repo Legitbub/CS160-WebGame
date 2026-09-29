@@ -8,7 +8,10 @@ export class Game extends Scene
     gameText: Phaser.GameObjects.Text;
     private player!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     private arrows!: Phaser.Types.Input.Keyboard.CursorKeys;
-    private readonly SPEED = 200;
+    private wallsLayer!: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
+    private readonly TILE_SIZE = 32;
+    private readonly MOVE_STEP_TIME = 250;
+    private isMoving = false;
 
     constructor ()
     {
@@ -28,11 +31,11 @@ export class Game extends Scene
 
         // Create map and tileset
         const tilemap = this.make.tilemap({key: "tiles_map"});
-        const tileset = tilemap.addTilesetImage("Cottage", "tiles", 32, 32, 0, 0);
+        const tileset = tilemap.addTilesetImage("Cottage_Tileset", "tiles", 32, 32, 0, 0);
         if (!tileset) return;
 
         const floorLayer = tilemap.createLayer('Tile Layer 1', tileset, 0, 0);
-        const wallsLayer = tilemap.createLayer('Bump', tileset, 0, 0);
+        this.wallsLayer = tilemap.createLayer('Walls', tileset, 0, 0)!;
 
         // Placeholder texture for the player sprite
         const gfx = this.make.graphics({ x: 0, y: 0 });
@@ -41,23 +44,17 @@ export class Game extends Scene
         gfx.generateTexture('player_box', 32, 32);
         gfx.destroy();
 
-        this.player = this.physics.add.sprite(
-            this.scale.width / 2,
-            this.scale.height / 2,
-            'player_box'
-        );
+        const playerX = Math.floor(tilemap.width / 2) * this.TILE_SIZE + (this.TILE_SIZE / 2);
+        const playerY = Math.floor(tilemap.height / 2) * this.TILE_SIZE + (this.TILE_SIZE / 2);
+        this.player = this.physics.add.sprite(playerX, playerY, 'player_box');
 
         // Set collisions so character bumps into walls
-        wallsLayer?.setCollisionByExclusion([-1]);
+        this.wallsLayer.setCollisionByExclusion([-1, 0]);
         this.player.setCollideWorldBounds(true);
         this.physics.world.setBounds(0, 0, tilemap.widthInPixels, tilemap.heightInPixels);
-        
-        if (wallsLayer) {
-            this.physics.add.collider(this.player, wallsLayer);
-        }
 
         this.camera.setBounds(0, 0, tilemap.widthInPixels, tilemap.heightInPixels);
-        this.camera.setZoom(2);
+        this.camera.setZoom(3);
         this.camera.startFollow(this.player, true, 0.1, 0.1);
 
         // Arrow key controls
@@ -70,20 +67,60 @@ export class Game extends Scene
 
     // Handle player input for movement
     update() {
-        if (!this.arrows || !this.player) return;
+        if (!this.arrows || !this.player || this.isMoving) return;
 
-        // Reset velocity every frame
-        this.player.setVelocity(0);
+        let moveX = 0;
+        let moveY = 0;
 
         if (this.arrows.left.isDown) {
-            this.player.setVelocityX(-this.SPEED);
+            moveX = -1;
         } else if (this.arrows.right.isDown) {
-            this.player.setVelocityX(this.SPEED);
+            moveX = 1;
         } else if (this.arrows.up.isDown) {
-            this.player.setVelocityY(-this.SPEED);
+            moveY = -1;
         } else if (this.arrows.down.isDown) {
-            this.player.setVelocityY(this.SPEED);
+            moveY = 1
         }
+
+        if (moveX !== 0 || moveY !== 0) {
+            this.moveTile(moveX, moveY);
+        }
+    }
+
+    private moveTile(moveX: number, moveY: number) {
+        const currentTileX = Math.floor(this.player.x / this.TILE_SIZE);
+        const currentTileY = Math.floor(this.player.y / this.TILE_SIZE);
+        const nextTileX = currentTileX + moveX;
+        const nextTileY = currentTileY + moveY;
+
+        // Check for edge of screen
+        if (nextTileX < 0 || nextTileX >= this.wallsLayer.tilemap.width ||
+            nextTileY < 0 || nextTileY >= this.wallsLayer.tilemap.height)
+        {
+            return;
+        }
+
+        // Check if next tile is a wall
+        const targetTile = this.wallsLayer.getTileAt(nextTileX, nextTileY);
+        if (targetTile && targetTile.collides) {
+            return;
+        }
+
+        // Perform movement tween
+        this.isMoving = true;
+        const targetPixelX = nextTileX * this.TILE_SIZE + this.TILE_SIZE / 2;
+        const targetPixelY = nextTileY * this.TILE_SIZE + this.TILE_SIZE / 2;
+
+        this.tweens.add({
+            targets: this.player,
+            x: targetPixelX,
+            y: targetPixelY,
+            duration: this.MOVE_STEP_TIME,
+            ease: 'Linear',
+            onComplete: () => {
+                this.isMoving = false;
+            }
+        });
     }
 
     changeScene ()

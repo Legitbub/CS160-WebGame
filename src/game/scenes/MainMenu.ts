@@ -121,7 +121,7 @@ export class MainMenu extends Scene
     private confirmSelection() {
         const chosen = this.menuButtons[this.selected];
         if (chosen === "New Game") {
-            this.scene.start("Game");
+            this.scene.start("City");
         } else if (chosen === "Settings") {
 
         }

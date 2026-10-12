@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { CONSTANTS } from "./Constants";
 
 export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {

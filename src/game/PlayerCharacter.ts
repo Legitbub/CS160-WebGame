@@ -14,6 +14,9 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
         // Prevent moving off screen
         this.setCollideWorldBounds(true);
 
+        // On spawn
+        this.anims.play("player-down");
+
         if (scene.input.keyboard) {
             this.arrows = scene.input.keyboard.createCursorKeys();
         }
@@ -32,12 +35,16 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
 
         if (this.arrows.left.isDown) {
             moveX = -1;
+            this.anims.play("player-left");
         } else if (this.arrows.right.isDown) {
             moveX = 1;
+            this.anims.play("player-right");
         } else if (this.arrows.up.isDown) {
             moveY = -1;
+            this.anims.play("player-up");
         } else if (this.arrows.down.isDown) {
-            moveY = 1
+            moveY = 1;
+            this.anims.play("player-down");
         }
 
         if (moveX !== 0 || moveY !== 0) {

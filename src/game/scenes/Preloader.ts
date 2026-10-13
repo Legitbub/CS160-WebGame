@@ -30,12 +30,32 @@ export class Preloader extends Scene
         //  Load the assets for the game - Replace with your own assets
         this.load.setPath("assets");
         this.load.image("title", "Get_a_Job!_example_title.jpg");
+        this.load.spritesheet("player_stationary", "stationary Nerdy Guy sprites.png", {
+            frameWidth: 32,
+            frameHeight: 32
+        });
     }
 
     create ()
     {
         //  When all the assets have loaded, it's often worth creating global objects here that the rest of the game can use.
         //  For example, you can define global animations here, so we can use them in other scenes.
+        this.anims.create({
+            key: 'player-down',
+            frames: [{ key: 'player_stationary', frame: 0 }]
+            });
+            this.anims.create({
+            key: 'player-up',
+            frames: [{ key: 'player_stationary', frame: 1 }]
+            });
+            this.anims.create({
+            key: 'player-left',
+            frames: [{ key: 'player_stationary', frame: 2 }]
+            });
+            this.anims.create({
+            key: 'player-right',
+            frames: [{ key: 'player_stationary', frame: 3 }]
+        });
 
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
         this.scene.start('MainMenu');

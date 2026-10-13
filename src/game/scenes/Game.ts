@@ -20,6 +20,10 @@ export class Game extends Scene
         // Load tilemap (room layout) and tileset (building blocks)
         this.load.image('tiles', '/scene_tilemaps/Cottage_Tileset/Cottage_Tileset.png');
         this.load.tilemapTiledJSON('tiles_map', '/assets/test.json');
+        this.load.spritesheet("player_stationary", "/assets/stationary Nerdy Guy sprites.png", {
+            frameWidth: 32,
+            frameHeight: 32
+        });
     }
     
     create ()
@@ -35,18 +39,9 @@ export class Game extends Scene
         const floorLayer = tilemap.createLayer('Tile Layer 1', tileset, 0, 0);
         this.wallsLayer = tilemap.createLayer('Walls', tileset, 0, 0)!;
 
-        // Placeholder texture for the player sprite
-        if (!this.textures.exists('player_box')) {
-            const gfx = this.make.graphics({ x: 0, y: 0 });
-            gfx.fillStyle(0x3b82f6, 1); // Blue box
-            gfx.fillRect(0, 0, 32, 32);
-            gfx.generateTexture('player_box', 32, 32);
-            gfx.destroy();
-        }
-
         const playerX = Math.floor(tilemap.width / 2) * CONSTANTS.TILE_SIZE + (CONSTANTS.TILE_SIZE / 2);
         const playerY = Math.floor(tilemap.height / 2) * CONSTANTS.TILE_SIZE + (CONSTANTS.TILE_SIZE/ 2);
-        this.player = new PlayerCharacter(this, playerX, playerY, "player_box");
+        this.player = new PlayerCharacter(this, playerX, playerY, "player");
 
         // Set collisions so character bumps into walls
         this.wallsLayer.setCollisionByExclusion([-1, 0]);

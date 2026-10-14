@@ -1,7 +1,9 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import { PlayerCharacter } from '../PlayerCharacter';
-import { CONSTANTS } from '../Constants';
+import { CONSTANTS } from '../utilities/Constants';
+import { PlayerSetupOptions, PlayerSpawn } from '../utilities/PlayerSpawn';
+import { DoorDetails, makeDoors } from '../utilities/DoorSpawn';
 
 export class Game extends Scene
 {
@@ -9,6 +11,7 @@ export class Game extends Scene
     gameText: Phaser.GameObjects.Text;
     private player!: PlayerCharacter;
     private wallsLayer!: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
+    private doors: DoorDetails[] = [];
 
     constructor ()
     {
@@ -33,24 +36,24 @@ export class Game extends Scene
 
         // Create map and tileset
         const tilemap = this.make.tilemap({key: "tiles_map"});
-        const tileset = tilemap.addTilesetImage("Cottage_Tileset", "tiles", 32, 32, 0, 0);
-        if (!tileset) return;
+        const tileset = tilemap.addTilesetImage("Cottage_Tileset", "tiles", 32, 32, 0, 0)!;
 
-        const floorLayer = tilemap.createLayer('Tile Layer 1', tileset, 0, 0);
+        const floorLayer = tilemap.createLayer('Room', tileset, 0, 0);
         this.wallsLayer = tilemap.createLayer('Walls', tileset, 0, 0)!;
 
-        const playerX = Math.floor(tilemap.width / 2) * CONSTANTS.TILE_SIZE + (CONSTANTS.TILE_SIZE / 2);
-        const playerY = Math.floor(tilemap.height / 2) * CONSTANTS.TILE_SIZE + (CONSTANTS.TILE_SIZE/ 2);
-        this.player = new PlayerCharacter(this, playerX, playerY, "player");
+        this.player = PlayerSpawn({
+            scene: this,
+            map: tilemap,
+            wallsLayer: this.wallsLayer,
+            zoom: 4.5
+        });
 
-        // Set collisions so character bumps into walls
-        this.wallsLayer.setCollisionByExclusion([-1, 0]);
-        this.player.setCollisionLayer(this.wallsLayer);
-        this.physics.world.setBounds(0, 0, tilemap.widthInPixels, tilemap.heightInPixels);
-
-        this.camera.setBounds(0, 0, tilemap.widthInPixels, tilemap.heightInPixels);
-        this.camera.setZoom(3);
-        this.camera.startFollow(this.player, true);
+        this.doors = makeDoors({
+            scene: this,
+            tilemap: tilemap,
+            player: this.player,
+            layer: "Doors"
+        });
 
         EventBus.emit('current-scene-ready', this);
     }

@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { CONSTANTS } from "./Constants";
+import { CONSTANTS } from "./utilities/Constants";
 
 export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
     private arrows!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -85,6 +85,7 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
             ease: 'Linear',
             onComplete: () => {
                 this.isMoving = false;
+                this.emit('tile-reached', nextTileX, nextTileY);
             }
         });
     }

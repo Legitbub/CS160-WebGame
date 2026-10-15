@@ -11,6 +11,7 @@ export class Game extends Scene
     gameText: Phaser.GameObjects.Text;
     private player!: PlayerCharacter;
     private wallsLayer!: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
+    private spawnAt?: {x: number, y: number};
     private doors: DoorDetails[] = [];
 
     constructor ()
@@ -28,6 +29,10 @@ export class Game extends Scene
             frameHeight: 32
         });
     }
+
+    init(data: {spawnAt: {x: number, y: number}}) {
+        this.spawnAt = data.spawnAt;
+    }
     
     create ()
     {
@@ -38,14 +43,15 @@ export class Game extends Scene
         const tilemap = this.make.tilemap({key: "tiles_map"});
         const tileset = tilemap.addTilesetImage("Cottage_Tileset", "tiles", 32, 32, 0, 0)!;
 
-        const floorLayer = tilemap.createLayer('Room', tileset, 0, 0);
-        this.wallsLayer = tilemap.createLayer('Walls', tileset, 0, 0)!;
+        const floorLayer = tilemap.createLayer('Room', tileset);
+        this.wallsLayer = tilemap.createLayer('Walls', tileset)!;
 
         this.player = PlayerSpawn({
             scene: this,
             map: tilemap,
             wallsLayer: this.wallsLayer,
-            zoom: 4.5
+            zoom: 4.5,
+            spawnTile: this.spawnAt
         });
 
         this.doors = makeDoors({

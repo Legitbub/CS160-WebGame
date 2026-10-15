@@ -14,7 +14,7 @@
          "name":"Room",
          "opacity":1,
          "type":"tilelayer",
-         "visible":false,
+         "visible":true,
          "width":9,
          "x":0,
          "y":0
@@ -42,7 +42,7 @@
          "name":"Doors",
          "objects":[
                 {
-                 "height":31.0594668489405,
+                 "height":31.0595,
                  "id":1,
                  "name":"Door",
                  "opacity":1,
@@ -55,23 +55,23 @@
                         {
                          "name":"spawnX",
                          "type":"int",
-                         "value":0
+                         "value":13
                         }, 
                         {
                          "name":"spawnY",
                          "type":"int",
-                         "value":0
+                         "value":6
                         }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":31.9343814080656,
-                 "x":128.174982911825,
+                 "width":31.9344,
+                 "x":128.175,
                  "y":0
                 }],
          "opacity":1,
          "type":"objectgroup",
-         "visible":false,
+         "visible":true,
          "x":0,
          "y":0
         }],

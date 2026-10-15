@@ -17,6 +17,7 @@ export interface DoorLocation {
     fadeTime?: number;
 }
 
+// Make a list of the doors in the scene and assign them exit properties
 export function makeDoors({scene, tilemap, player, layer, fadeTime = 750}
     : DoorLocation): DoorDetails[] {
     const doorObjects = tilemap.getObjectLayer(layer)?.objects || [];
@@ -46,7 +47,7 @@ export function makeDoors({scene, tilemap, player, layer, fadeTime = 750}
             scene.cameras.main.fadeOut(fadeTime, 0, 0, 0);
             scene.cameras.main.once('camerafadeoutcomplete', () => {
                 scene.scene.start(matchingDoor.exitTo, {
-                    spawnTile: matchingDoor.spawnAt
+                    spawnAt: matchingDoor.spawnAt
                 });
             });
         }

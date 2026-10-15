@@ -65,10 +65,30 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
             {
                 return;
             }
-            // Check if next tile is a wall
+            // Check if next tile is a directional wall
+            const currentTile = this.collisionLayer.getTileAt(currentTileX, currentTileY)
             const targetTile = this.collisionLayer.getTileAt(nextTileX, nextTileY);
-            if (targetTile && targetTile.collides) {
+            if (moveX === 1 && targetTile?.properties?.blockLeft) {
                 return;
+            } 
+            if (moveX === -1 && currentTile?.properties?.blockLeft) {
+                return;
+            } 
+            if (moveY === 1 && currentTile?.properties?.blockDown) {
+                return;
+            } 
+            if (moveY === -1 && targetTile?.properties?.blockDown) {
+                return;
+            }
+
+            // Regular walls get blocked from all sides
+            if (targetTile && targetTile.collides) {
+                const isDirectional = targetTile.properties?.blockLeft || targetTile.properties?.blockRight || 
+                    targetTile.properties?.blockUp || targetTile.properties?.blockDown;
+
+                if (!isDirectional) {
+                    return;
+                }
             }
         }
 

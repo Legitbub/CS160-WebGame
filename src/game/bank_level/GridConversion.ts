@@ -4,8 +4,8 @@
  * angle where characters move in diagonals (like Final Fantasy Tactics!)
  */
 
-export const TILE_WIDTH = 64;
-export const TILE_HEIGHT = 32;
+export const TILE_WIDTH = 32;
+export const TILE_HEIGHT = 16;
 
 export function gridToScreen(x: number, y: number) {
   return {

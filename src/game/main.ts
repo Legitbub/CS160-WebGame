@@ -1,10 +1,5 @@
-import { Boot } from './scenes/Boot';
-import { GameOver } from './scenes/GameOver';
-import { Game as StartScene } from './scenes/Game';
-import { City } from './scenes/City';
-import { MainMenu } from './scenes/MainMenu';
+import * as Scenes from "./scenes";
 import { AUTO, Game } from 'phaser';
-import { Preloader } from './scenes/Preloader';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -26,12 +21,13 @@ const config: Phaser.Types.Core.GameConfig = {
         }
     },
     scene: [
-        Boot,
-        Preloader,
-        MainMenu,
-        StartScene,
-        City,
-        GameOver
+        Scenes.Boot,
+        Scenes.Preloader,
+        Scenes.MainMenu,
+        Scenes.Game,
+        Scenes.City,
+        Scenes.Battle_in_Bank,
+        Scenes.GameOver
     ]
 };
 

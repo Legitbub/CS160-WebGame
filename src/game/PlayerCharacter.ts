@@ -5,6 +5,13 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
     private arrows!: Phaser.Types.Input.Keyboard.CursorKeys;
     private isMoving = false;
     private collisionLayer?: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
+    private currentDirection = "down";
+    private facingFrames: {[key: string]: number } = {
+        down: 0, 
+        up: 1, 
+        left: 2,
+        right: 3 
+    };
 
     constructor(scene: Phaser.Scene, x: number, y: number, texture: string = "PlayerCharacter") {
         super(scene, x, y, texture);
@@ -15,8 +22,8 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
         this.setCollideWorldBounds(true);
 
         // On spawn
-        this.anims.play("player-down");
-
+        this.setTexture("player_stationary", this.facingFrames[this.currentDirection]);
+        
         if (scene.input.keyboard) {
             this.arrows = scene.input.keyboard.createCursorKeys();
         }
@@ -35,16 +42,20 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
 
         if (this.arrows.left.isDown) {
             moveX = -1;
-            this.anims.play("player-left");
+            this.currentDirection = "left";
+            this.anims.play("player-left", true);
         } else if (this.arrows.right.isDown) {
             moveX = 1;
-            this.anims.play("player-right");
+            this.currentDirection = "right";
+            this.anims.play("player-right", true);
         } else if (this.arrows.up.isDown) {
             moveY = -1;
-            this.anims.play("player-up");
+            this.currentDirection = "up";
+            this.anims.play("player-up", true);
         } else if (this.arrows.down.isDown) {
             moveY = 1;
-            this.anims.play("player-down");
+            this.currentDirection = "down";
+            this.anims.play("player-down", true);
         }
 
         if (moveX !== 0 || moveY !== 0) {
@@ -105,6 +116,9 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
             ease: 'Linear',
             onComplete: () => {
                 this.isMoving = false;
+                this.anims.stop();
+                const targetFrame = this.facingFrames[this.currentDirection];
+                this.setTexture('player_stationary', targetFrame);
                 this.emit('tile-reached', nextTileX, nextTileY);
             }
         });

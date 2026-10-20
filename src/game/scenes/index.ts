@@ -5,3 +5,4 @@ export { City } from "./City";
 export { Game } from "./Game";
 export { GameOver } from "./GameOver";
 export { Preloader } from "./Preloader";
+export { Cutscene } from "./Cutscene"

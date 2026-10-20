@@ -38,6 +38,7 @@ export class Preloader extends Scene
             frameWidth: 32,
             frameHeight: 32
         });
+        this.load.image("intro_slide", "/cutscene_slides/intro slide.jpg");
     }
 
     create ()

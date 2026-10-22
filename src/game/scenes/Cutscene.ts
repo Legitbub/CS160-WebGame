@@ -60,6 +60,12 @@ export class Cutscene extends Scene {
         this.isTyping = false;
     }
 
+    preload() {
+        if (!this.textures.exists('intro_slide')) {
+            this.load.image('intro_slide', 'assets/cutscene_slides/intro slide.jpg');
+        }
+    }
+
     create() {
         const { width, height } = this.scale;
 

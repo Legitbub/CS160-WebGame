@@ -29,7 +29,7 @@ export class Preloader extends Scene
     {
         //  Load the assets for the game - Replace with your own assets
         this.load.setPath("assets");
-        this.load.image("title", "Get_a_Job!_example_title.jpg");
+        this.load.image("title", "title.jpg");
         this.load.spritesheet("player_stationary", "stationary Nerdy Guy sprites.png", {
             frameWidth: 32,
             frameHeight: 32
@@ -38,7 +38,6 @@ export class Preloader extends Scene
             frameWidth: 32,
             frameHeight: 32
         });
-        this.load.image("intro_slide", "/cutscene_slides/intro slide.jpg");
     }
 
     create ()

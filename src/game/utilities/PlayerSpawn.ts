@@ -35,5 +35,14 @@ export function PlayerSpawn({ scene, map, wallsLayer, zoom = 3, spawnTile }: Pla
     scene.cameras.main.setZoom(zoom);
     scene.cameras.main.startFollow(player, true);
 
+    const visibleWidth = scene.scale.width / zoom;
+    const visibleHeight = scene.scale.height / zoom;
+    
+    // 4 tiles of padding around the player
+    const padding = CONSTANTS.TILE_SIZE * 4;
+    const deadzoneWidth = Math.max(CONSTANTS.TILE_SIZE, visibleWidth - padding * 2);
+    const deadzoneHeight = Math.max(CONSTANTS.TILE_SIZE, visibleHeight - padding * 2);
+    scene.cameras.main.setDeadzone(deadzoneWidth, deadzoneHeight);
+
     return player;
 }

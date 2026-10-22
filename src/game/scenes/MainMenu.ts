@@ -90,6 +90,7 @@ export class MainMenu extends Scene
     private preloadIntro() {
         if (this.textures.exists('intro_slide')) return;
         this.load.image('intro_slide', 'assets/cutscene_slides/intro slide.jpg');
+        this.load.image("intro_slide_2", "assets/cutscene_slides/intro slide 2.jpg");
         this.load.start();
     }
     
@@ -165,6 +166,14 @@ export class MainMenu extends Scene
                         duration: 5000,
                         // sfxKey: 'phone_ring', 
                         // bgmKey: 'intro_bgm'
+                    },
+                    {
+                        textureKey: "intro_slide_2",
+                        text: "Oh man, I need to get a job...........NOW!!!!!",
+                        textColor: '#ffffff',
+                        zoom: 1,
+                        panX: 0,
+                        panY: 0,
                     }
                 ],
                 nextSceneKey: "Game",

@@ -161,7 +161,7 @@ export class Cutscene extends Scene {
                 scaleY: targetScaleY,
                 x: this.frameX + (slide.panX ?? 0),
                 y: this.frameY + (slide.panY ?? 0),
-                duration: slide.duration ?? 4000,
+                duration: slide.duration ?? 2000,
                 ease: 'Quad.easeOut'
             });
         }

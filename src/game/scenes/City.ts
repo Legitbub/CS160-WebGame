@@ -16,9 +16,13 @@ export class City extends Scene {
 
     preload() 
     {
-        // Load tilemap (room layout) and tileset (building blocks)
-        this.load.image('city', '/scene_tilemaps/Simple_City_Tileset/SIMPLE CITY 32X32.png');
-        this.load.tilemapTiledJSON('city_map', '/assets/city_scene.json');
+        // Skip files the menu already downloaded.
+        if (!this.textures.exists('city')) {
+            this.load.image('city', '/scene_tilemaps/Simple_City_Tileset/SIMPLE CITY 32X32.png');
+        }
+        if (!this.cache.tilemap.exists('city_map')) {
+            this.load.tilemapTiledJSON('city_map', '/assets/city_scene.json');
+        }
     }
 
     create ()

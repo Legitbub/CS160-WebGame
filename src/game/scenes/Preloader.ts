@@ -29,7 +29,8 @@ export class Preloader extends Scene
     {
         //  Load the assets for the game - Replace with your own assets
         this.load.setPath("assets");
-        this.load.image("title", "Get_a_Job!_example_title.jpg");
+        // Display size is 1280x720, so the menu uses a resized copy of the title art.
+        this.load.image("title", "title.jpg");
         this.load.spritesheet("player_stationary", "stationary Nerdy Guy sprites.png", {
             frameWidth: 32,
             frameHeight: 32

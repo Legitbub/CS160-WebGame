@@ -10,6 +10,7 @@ export class MainMenu extends Scene
     private pointer!: GameObjects.Text;
     private arrows!: Types.Input.Keyboard.CursorKeys;
     private enterKey!: Input.Keyboard.Key;
+    private cityStartQueued = false;
 
     constructor ()
     {
@@ -80,8 +81,25 @@ export class MainMenu extends Scene
         }
     
         this.updateMenuHighlight();
+        this.preloadCity();
 
         EventBus.emit('current-scene-ready', this);
+    }
+
+    // Download the city map while the player is still on the menu.
+    private preloadCity () {
+        const needsTiles = !this.textures.exists('city');
+        const needsMap = !this.cache.tilemap.exists('city_map');
+
+        if (needsTiles) {
+            this.load.image('city', '/scene_tilemaps/Simple_City_Tileset/SIMPLE CITY 32X32.png');
+        }
+        if (needsMap) {
+            this.load.tilemapTiledJSON('city_map', '/assets/city_scene.json');
+        }
+        if (needsTiles || needsMap) {
+            this.load.start();
+        }
     }
     
     // This will activate once the user starts selecting a button
@@ -121,9 +139,23 @@ export class MainMenu extends Scene
     private confirmSelection() {
         const chosen = this.menuButtons[this.selected];
         if (chosen === "New Game") {
-            this.scene.start("City");
+            this.startCity();
         } else if (chosen === "Settings") {
 
         }
+    }
+
+    private startCity() {
+        const ready = this.textures.exists('city') && this.cache.tilemap.exists('city_map');
+        if (ready || !this.load.isLoading()) {
+            this.scene.start("City");
+            return;
+        }
+
+        if (this.cityStartQueued) return;
+        this.cityStartQueued = true;
+        this.load.once('complete', () => {
+            this.scene.start("City");
+        });
     }
 }

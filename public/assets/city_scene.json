@@ -362,7 +362,7 @@
                         {
                          "name":"exitTo",
                          "type":"string",
-                         "value":"none"
+                         "value":"PizzaShop"
                         }, 
                         {
                          "name":"spawnX",
@@ -377,9 +377,9 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":34,
-                 "x":63,
-                 "y":479
+                 "width":32,
+                 "x":64,
+                 "y":480
                 }],
          "opacity":1,
          "type":"objectgroup",

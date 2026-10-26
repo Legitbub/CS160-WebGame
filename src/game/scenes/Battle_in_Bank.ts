@@ -820,5 +820,3 @@ export class Battle_in_Bank extends Scene {
         this.scene.start("City");
     }
 }
-
-}

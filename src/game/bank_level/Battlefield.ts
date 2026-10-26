@@ -17,7 +17,7 @@ export class BattleGrid {
   height: number;
   squares: BattleSquare[][];
 
-  constructor(width: number, height: number, blockedSpots: [number, number][]) {
+  constructor(width: number, height: number, blockedSpots: [number, number][] = []) {
     this.width = width;
     this.height = height;
     this.squares = [];
@@ -57,7 +57,9 @@ export function getReachableCells(unit: Kombatant, grid: BattleGrid): BattleSqua
 
   while (queue.length > 0) {
     const { space, dist } = queue.shift()!;
-    reachable.push(space);
+    if (dist > 0 && !space.occupiedBy) {
+      reachable.push(space);
+    }
 
     if (dist < unit.moveRange) {
       for (const n of neighbors) {
@@ -68,7 +70,10 @@ export function getReachableCells(unit: Kombatant, grid: BattleGrid): BattleSqua
           const nextAdjacent = grid.squares[nx][ny];
           const key = `${nx},${ny}`;
 
-          if (!visited.has(key) && nextAdjacent.accessible && !nextAdjacent.occupiedBy) {
+          const canTraverse = nextAdjacent.accessible &&
+            (!nextAdjacent.occupiedBy || nextAdjacent.occupiedBy === unit || nextAdjacent.occupiedBy.isPlayer === unit.isPlayer);
+
+          if (!visited.has(key) && canTraverse) {
             visited.add(key);
             queue.push({ space: nextAdjacent, dist: dist + 1 });
           }
@@ -78,4 +83,104 @@ export function getReachableCells(unit: Kombatant, grid: BattleGrid): BattleSqua
   }
 
   return reachable;
+}
+
+export function findPath(unit: Kombatant, target: BattleSquare, grid: BattleGrid): BattleSquare[] {
+  if (!target.accessible || (target.occupiedBy && target.occupiedBy !== unit)) {
+    return [];
+  }
+
+  const queue: BattleSquare[] = [];
+  const parent = new Map<string, BattleSquare | null>();
+  const visited = new Set<string>();
+
+  const start = grid.squares[unit.gridX][unit.gridY];
+  const startKey = `${start.x},${start.y}`;
+  queue.push(start);
+  visited.add(startKey);
+  parent.set(startKey, null);
+
+  const neighbors = [
+    { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
+    { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
+  ];
+
+  let found = false;
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (current.x === target.x && current.y === target.y) {
+      found = true;
+      break;
+    }
+
+    for (const n of neighbors) {
+      const nx = current.x + n.dx;
+      const ny = current.y + n.dy;
+
+      if (grid.isValidSquare(nx, ny)) {
+        const next = grid.squares[nx][ny];
+        const key = `${nx},${ny}`;
+
+        const canTraverse = next.accessible &&
+          (!next.occupiedBy || next.occupiedBy === unit || next.occupiedBy.isPlayer === unit.isPlayer);
+
+        if (!visited.has(key) && canTraverse) {
+          visited.add(key);
+          parent.set(key, current);
+          queue.push(next);
+        }
+      }
+    }
+  }
+
+  if (!found) return [];
+
+  const path: BattleSquare[] = [];
+  let curr: BattleSquare | null = target;
+  while (curr) {
+    path.unshift(curr);
+    const key = `${curr.x},${curr.y}`;
+    curr = parent.get(key) || null;
+  }
+
+  return path;
+}
+
+export function getAttackableCells(unit: Kombatant, grid: BattleGrid): BattleSquare[] {
+  const attackable: BattleSquare[] = [];
+  const range = unit.attackRange;
+
+  for (let dx = -range; dx <= range; dx++) {
+    for (let dy = -range; dy <= range; dy++) {
+      if (Math.abs(dx) + Math.abs(dy) <= range && Math.abs(dx) + Math.abs(dy) > 0) {
+        const nx = unit.gridX + dx;
+        const ny = unit.gridY + dy;
+        if (grid.isValidSquare(nx, ny) && grid.squares[nx][ny].accessible) {
+          attackable.push(grid.squares[nx][ny]);
+        }
+      }
+    }
+  }
+
+  return attackable;
+}
+
+export function getItemTargetCells(unit: Kombatant, grid: BattleGrid): BattleSquare[] {
+  const itemCells: BattleSquare[] = [];
+  const range = 1;
+
+  for (let dx = -range; dx <= range; dx++) {
+    for (let dy = -range; dy <= range; dy++) {
+      if (Math.abs(dx) + Math.abs(dy) <= range) {
+        const nx = unit.gridX + dx;
+        const ny = unit.gridY + dy;
+        if (grid.isValidSquare(nx, ny) && grid.squares[nx][ny].accessible) {
+          itemCells.push(grid.squares[nx][ny]);
+        }
+      }
+    }
+  }
+
+  return itemCells;
 }

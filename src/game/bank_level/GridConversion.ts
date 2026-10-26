@@ -19,3 +19,11 @@ export function screenToGrid(screenX: number, screenY: number) {
   const y = Math.floor((screenY / (TILE_HEIGHT / 2) - screenX / (TILE_WIDTH / 2)) / 2);
   return { x, y };
 }
+
+export function getTileCorners(x: number, y: number) {
+  const top = gridToScreen(x, y);
+  const right = gridToScreen(x + 1, y);
+  const bottom = gridToScreen(x + 1, y + 1);
+  const left = gridToScreen(x, y + 1);
+  return { top, right, bottom, left };
+}

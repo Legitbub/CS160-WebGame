@@ -91,14 +91,14 @@ export function findPath(unit: Kombatant, target: BattleSquare, grid: BattleGrid
   }
 
   const queue: BattleSquare[] = [];
-  const parent = new Map<string, BattleSquare | null>();
+  const parentMap = new Map<string, BattleSquare | null>();
   const visited = new Set<string>();
 
   const start = grid.squares[unit.gridX][unit.gridY];
   const startKey = `${start.x},${start.y}`;
   queue.push(start);
   visited.add(startKey);
-  parent.set(startKey, null);
+  parentMap.set(startKey, null);
 
   const neighbors = [
     { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
@@ -127,7 +127,7 @@ export function findPath(unit: Kombatant, target: BattleSquare, grid: BattleGrid
 
         if (!visited.has(key) && canTraverse) {
           visited.add(key);
-          parent.set(key, current);
+          parentMap.set(key, current);
           queue.push(next);
         }
       }
@@ -140,8 +140,8 @@ export function findPath(unit: Kombatant, target: BattleSquare, grid: BattleGrid
   let curr: BattleSquare | null = target;
   while (curr) {
     path.unshift(curr);
-    const key = `${curr.x},${curr.y}`;
-    curr = parent.get(key) || null;
+    const key: string = `${curr.x},${curr.y}`;
+    curr = parentMap.get(key) || null;
   }
 
   return path;

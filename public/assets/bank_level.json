@@ -87,10 +87,6 @@
          "tilecount":24,
          "tileheight":64,
          "tilewidth":32
-        }, 
-        {
-         "firstgid":41,
-         "source":"..\/scene_tilemaps\/Bank_Isometric_Tileset\/stationary Nerdy Guy sprites.tsx"
         }],
  "tilewidth":32,
  "type":"map",

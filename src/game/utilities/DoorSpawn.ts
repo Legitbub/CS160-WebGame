@@ -1,12 +1,14 @@
 import { Scene } from "phaser";
 import { CONSTANTS } from "./Constants";
 import { PlayerCharacter } from "../PlayerCharacter";
+import { CutscenePayload, CutsceneSlide } from "../scenes/Cutscene";
 
 export interface DoorDetails {
     tileX: number;
     tileY: number;
     exitTo: string;
     spawnAt?: { x: number; y: number };
+    slides?: CutsceneSlide[];
 }
 
 export interface DoorLocation {
@@ -15,10 +17,11 @@ export interface DoorLocation {
     player: PlayerCharacter;
     layer?: string;
     fadeTime?: number;
+    cutscenes?: Record<string, CutsceneSlide[]>;
 }
 
 // Make a list of the doors in the scene and assign them exit properties
-export function makeDoors({scene, tilemap, player, layer, fadeTime = 750}
+export function makeDoors({scene, tilemap, player, layer, fadeTime = 750, cutscenes}
     : DoorLocation): DoorDetails[] {
     const doorObjects = tilemap.getObjectLayer(layer)?.objects || [];
     const doors: DoorDetails[] = doorObjects.map((d) => {
@@ -30,7 +33,8 @@ export function makeDoors({scene, tilemap, player, layer, fadeTime = 750}
             tileX: Math.floor((d.x ?? 0) / CONSTANTS.TILE_SIZE),
             tileY: Math.floor((d.y ?? 0) / CONSTANTS.TILE_SIZE),
             exitTo: exitTo,
-            spawnAt: {x: spawnX, y: spawnY}
+            spawnAt: {x: spawnX, y: spawnY},
+            slides: exitTo ? cutscenes?.[exitTo] : undefined
         };
     });
 
@@ -46,9 +50,20 @@ export function makeDoors({scene, tilemap, player, layer, fadeTime = 750}
             fading = true;
             scene.cameras.main.fadeOut(fadeTime, 0, 0, 0);
             scene.cameras.main.once('camerafadeoutcomplete', () => {
-                scene.scene.start(matchingDoor.exitTo, {
-                    spawnAt: matchingDoor.spawnAt
-                });
+                if (matchingDoor.slides && matchingDoor.slides.length > 0) {
+                    const cutsceneSetup: CutscenePayload = {
+                        slides: matchingDoor.slides,
+                        nextSceneKey: matchingDoor.exitTo,
+                        nextSceneData: {
+                            spawnAt: matchingDoor.spawnAt
+                        }
+                    };
+                    scene.scene.start("Cutscene", cutsceneSetup);
+                } else {
+                    scene.scene.start(matchingDoor.exitTo, {
+                        spawnAt: matchingDoor.spawnAt
+                    });
+                }
             });
         }
     });

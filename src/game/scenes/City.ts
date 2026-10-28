@@ -4,6 +4,7 @@ import { PlayerCharacter } from "../PlayerCharacter";
 import { CONSTANTS } from "../utilities/Constants"
 import { PlayerSetupOptions, PlayerSpawn } from "../utilities/PlayerSpawn";
 import { DoorDetails, makeDoors } from "../utilities/DoorSpawn";
+import { CutsceneSlide } from "./Cutscene";
 
 export class City extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
@@ -25,6 +26,8 @@ export class City extends Scene {
         this.load.image('player_house', "/scene_tilemaps/Player_House_Tileset/House resized.png");
         this.load.image('urban_city', "/scene_tilemaps/Urban_City_Tileset/Urban City Tileset Basic 32x32 Dlou Saiyan.png");
         this.load.tilemapTiledJSON('city_map', '/assets/city_scene.json');
+        this.load.image('outside_bank', '/assets/cutscene_slides/outside the bank.jpg');
+        this.load.image('entering_bank', '/assets/cutscene_slides/entering the bank.jpg');
     }
 
     init(data: {spawnAt: {x: number, y: number}}) {
@@ -54,12 +57,74 @@ export class City extends Scene {
             spawnTile: this.spawnAt
         });
 
+        const doorCutscenes: Record<string, CutsceneSlide[]> = {
+            Battle_in_Bank: [
+                {
+                    textureKey: "outside_bank",
+                    text: "*Sigh* I guess I could try at the bank... Hopefully this goes well.",
+                    textColor: '#ffffff',
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0,
+                },
+                {
+                    textureKey: "outside_bank",
+                    text: "*BANG!*",
+                    textColor: '#ffffff',
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0,
+                },
+                {
+                    textureKey: "outside_bank",
+                    text: "Huh?!",
+                    textColor: '#ffffff',
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0,
+                },
+                {
+                    textureKey: "entering_bank",
+                    text: "You there! We're being robbed!",
+                    textColor: '#ffffff',
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0,
+                },
+                {
+                    textureKey: "entering_bank",
+                    text: "I was just looking for a job...",
+                    textColor: '#ffffff',
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0,
+                },
+                {
+                    textureKey: "entering_bank",
+                    text: "Then you're security now! Get over here and help me fight these punks off!",
+                    textColor: '#ffffff',
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0,
+                },
+                {
+                    textureKey: "entering_bank",
+                    text: "Wait what?!",
+                    textColor: '#ffffff',
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0,
+                }
+            ]
+        };
+
         this.doors = makeDoors({
             scene: this,
             tilemap: tilemap,
             player: this.player,
-            layer: "Doors"
-        })
+            layer: "Doors",
+            cutscenes: doorCutscenes
+        });
 
         EventBus.emit('current-scene-ready', this);
     }

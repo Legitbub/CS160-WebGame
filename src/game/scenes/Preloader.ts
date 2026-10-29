@@ -45,59 +45,58 @@ export class Preloader extends Scene
         //  When all the assets have loaded, it's often worth creating global objects here that the rest of the game can use.
         //  For example, you can define global animations here, so we can use them in other scenes.
         // --- PLAYER DOWN ---
-    this.anims.create({
-        key: 'player-down',
-        frames: [
-        { key: 'player_stationary', frame: 0 },
-        { key: 'player_walking',    frame: 4 }, // Adjust to your sheet's frame indices
-        { key: 'player_stationary', frame: 0 },
-        { key: 'player_walking',    frame: 5 }
-        ],
-        frameRate: 6,
-        repeat: -1
-    });
+        this.anims.create({
+            key: 'player-down',
+            frames: [
+            { key: 'player_stationary', frame: 0 },
+            { key: 'player_walking',    frame: 4 }, // Adjust to your sheet's frame indices
+            { key: 'player_stationary', frame: 0 },
+            { key: 'player_walking',    frame: 5 }
+            ],
+            frameRate: 6,
+            repeat: -1
+        });
 
-    // --- PLAYER UP ---
-    this.anims.create({
-        key: 'player-up',
-        frames: [
-        { key: 'player_stationary', frame: 1 },
-        { key: 'player_walking',    frame: 2 },
-        { key: 'player_stationary', frame: 1 },
-        { key: 'player_walking',    frame: 3 }
-        ],
-        frameRate: 6,
-        repeat: -1
-    });
+        // --- PLAYER UP ---
+        this.anims.create({
+            key: 'player-up',
+            frames: [
+            { key: 'player_stationary', frame: 1 },
+            { key: 'player_walking',    frame: 2 },
+            { key: 'player_stationary', frame: 1 },
+            { key: 'player_walking',    frame: 3 }
+            ],
+            frameRate: 6,
+            repeat: -1
+        });
 
-    // --- PLAYER LEFT ---
-    this.anims.create({
-        key: 'player-left',
-        frames: [
-        { key: 'player_stationary', frame: 2 },
-        { key: 'player_walking',    frame: 0 },
-        { key: 'player_stationary', frame: 2 },
-        { key: 'player_walking',    frame: 0 }
-        ],
-        frameRate: 6,
-        repeat: -1
-    });
+        // --- PLAYER LEFT ---
+        this.anims.create({
+            key: 'player-left',
+            frames: [
+            { key: 'player_stationary', frame: 2 },
+            { key: 'player_walking',    frame: 0 },
+            { key: 'player_stationary', frame: 2 },
+            { key: 'player_walking',    frame: 0 }
+            ],
+            frameRate: 6,
+            repeat: -1
+        });
 
-    // --- PLAYER RIGHT ---
-    // (If you don't flip 'player-left' and have distinct right frames)
-    this.anims.create({
-        key: 'player-right',
-        frames: [
-        { key: 'player_stationary', frame: 3 },
-        { key: 'player_walking',    frame: 1 },
-        { key: 'player_stationary', frame: 3 },
-        { key: 'player_walking',    frame: 1 }
-        ],
-        frameRate: 6,
-        repeat: -1
-    });
+        // --- PLAYER RIGHT ---
+        // (If you don't flip 'player-left' and have distinct right frames)
+        this.anims.create({
+            key: 'player-right',
+            frames: [
+            { key: 'player_stationary', frame: 3 },
+            { key: 'player_walking',    frame: 1 },
+            { key: 'player_stationary', frame: 3 },
+            { key: 'player_walking',    frame: 1 }
+            ],
+            frameRate: 6,
+            repeat: -1
+        });
 
-        //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
         this.scene.start('MainMenu');
     }
 }

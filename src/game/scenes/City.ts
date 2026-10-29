@@ -28,6 +28,8 @@ export class City extends Scene {
         this.load.tilemapTiledJSON('city_map', '/assets/city_scene.json');
         this.load.image('outside_bank', '/assets/cutscene_slides/outside the bank.jpg');
         this.load.image('entering_bank', '/assets/cutscene_slides/entering the bank.jpg');
+        this.load.image('outside_pizza', '/assets/cutscene_slides/outside the pizza place.jpg');
+        this.load.image('entering_pizza', '/assets/cutscene_slides/entering the pizza place.jpg');
     }
 
     init(data: {spawnAt: {x: number, y: number}}) {
@@ -110,6 +112,41 @@ export class City extends Scene {
                 {
                     textureKey: "entering_bank",
                     text: "Wait what?!",
+                    textColor: '#ffffff',
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0,
+                }
+            ],
+            PizzaShop: [
+                {
+                    textureKey: "outside_pizza",
+                    text: "Oh look, a 'Help Wanted' sign at the pizza shop! Surely making pizzas is safe...",
+                    textColor: '#ffffff',
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0,
+                },
+                {
+                    textureKey: "entering_pizza",
+                    text: "Mamma mia! Thank goodness you're here! The lunch rush is out of control!",
+                    textColor: '#ffffff',
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0,
+                },
+                {
+                    textureKey: "entering_pizza",
+                    text: "Uh, hi, I just saw the sign in the window—",
+                    textColor: '#ffffff',
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0,
+                },
+                {
+                    textureKey: "entering_pizza",
+                    text: ("No time for interviews! Get behind the counter and start making " + 
+                        "those pies before this whole place burns down!\nWe got some hungry bambinos to feed!"),
                     textColor: '#ffffff',
                     zoom: 1,
                     panX: 0,

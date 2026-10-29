@@ -68,6 +68,14 @@ export class Battle_in_Bank extends Scene {
         this.load.image("floors", "/scene_tilemaps/Bank_Isometric_Tileset/Floors.png");
         this.load.image("walls", "/scene_tilemaps/Bank_Isometric_Tileset/Walls.png");
         this.load.tilemapTiledJSON("bank_battle_map", "/assets/bank_level.json");
+        this.load.spritesheet("robber_stationary", "/assets/robber spritesheet.png", {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        this.load.spritesheet("security_guard_stationary", "/assets/security guard sprites.png", {
+            frameWidth: 32,
+            frameHeight: 32
+        });
     }
 
     create() {
@@ -108,10 +116,10 @@ export class Battle_in_Bank extends Scene {
 
         // Spawn player and enemy units with interleaved speeds so turns alternate Player <-> Enemy
         this.units = [];
-        this.spawnUnit("Hero", 6, 5, 12, true);
-        this.spawnUnit("Bank Guard", 9, 5, 11, false);
-        this.spawnUnit("Ally", 6, 8, 10, true);
-        this.spawnUnit("Chief Teller", 9, 8, 9, false);
+        this.spawnUnit("Hero", 6, 5, 12, true, "player_stationary");
+        this.spawnUnit("Bank Guard", 9, 5, 11, false, "robber_stationary");
+        this.spawnUnit("Security Guard", 6, 8, 10, true, "security_guard_stationary");
+        this.spawnUnit("Chief Teller", 9, 8, 9, false, "robber_stationary");
 
         // Build UI (Turn banner, Controls Guide, Unit Status HUD, Info bar, and FFT-style Options Menu)
         this.createUI();
@@ -145,10 +153,11 @@ export class Battle_in_Bank extends Scene {
         };
     }
 
-    private spawnUnit(name: string, x: number, y: number, speed: number, isPlayer: boolean): Kombatant {
-        const unit = new Kombatant(this, name, x, y, speed, isPlayer, 'player_stationary');
+    private spawnUnit(name: string, x: number, y: number, speed: number, isPlayer: boolean, textureKey?: string): Kombatant {
+        const resolvedTexture = textureKey ?? (isPlayer ? 'player_stationary' : 'robber_stationary');
+        const unit = new Kombatant(this, name, x, y, speed, isPlayer, resolvedTexture);
         // Face players right (toward enemies) and enemies left (toward players)
-        unit.sprite.setFrame(isPlayer ? 3 : 2);
+        unit.setDirection(isPlayer ? 'right' : 'left');
         this.grid.squares[x][y].occupiedBy = unit;
         this.units.push(unit);
         return unit;
@@ -677,15 +686,14 @@ export class Battle_in_Bank extends Scene {
     }
 
     private updateSpriteDirection(unit: Kombatant, dx: number, dy: number) {
-        // Stationary frames: 0 = down, 1 = up, 2 = left, 3 = right
         if (dx > 0) {
-            unit.sprite.setFrame(3);
+            unit.setDirection('right');
         } else if (dx < 0) {
-            unit.sprite.setFrame(2);
+            unit.setDirection('left');
         } else if (dy > 0) {
-            unit.sprite.setFrame(0);
+            unit.setDirection('down');
         } else if (dy < 0) {
-            unit.sprite.setFrame(1);
+            unit.setDirection('up');
         }
     }
 
@@ -813,11 +821,7 @@ export class Battle_in_Bank extends Scene {
                 repeat: 3,
                 onComplete: () => {
                     target.sprite.x = baseScreen.x;
-                    if (target.isPlayer) {
-                        target.sprite.clearTint();
-                    } else {
-                        target.sprite.setTint(0xff5555);
-                    }
+                    target.sprite.clearTint();
                 }
             });
         }
@@ -1118,9 +1122,5 @@ export class Battle_in_Bank extends Scene {
                 this.confirmMenuSelection();
             }
         }
-    }
-
-    changeScene() {
-        this.scene.start("City");
     }
 }

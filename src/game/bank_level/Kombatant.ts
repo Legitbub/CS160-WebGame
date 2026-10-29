@@ -7,6 +7,8 @@
 import * as Phaser from "phaser";
 import { gridToScreen } from "./GridConversion";
 
+export type FacingDirection = 'down' | 'up' | 'left' | 'right';
+
 export class Kombatant {
   name: string;
   gridX: number;
@@ -23,6 +25,7 @@ export class Kombatant {
   sprite: Phaser.GameObjects.Sprite;
   hpText?: Phaser.GameObjects.Text;
   hpBar?: Phaser.GameObjects.Graphics;
+  private facingFrames: Record<FacingDirection, number>;
 
   constructor(scene: Phaser.Scene, name: string, x: number, y: number,
                         speed: number, isPlayer: boolean, textureKey: string = 'player_stationary') {
@@ -32,12 +35,17 @@ export class Kombatant {
     this.speed = speed;
     this.isPlayer = isPlayer;
 
+    // 'player_stationary' frames: 0 = down, 1 = up, 2 = left, 3 = right
+    // 'robber_stationary' & 'security_guard_stationary' frames: 0 = down, 1 = up, 2 = right, 3 = left
+    if (textureKey === 'robber_stationary' || textureKey === 'security_guard_stationary') {
+      this.facingFrames = { down: 0, up: 1, right: 2, left: 3 };
+    } else {
+      this.facingFrames = { down: 0, up: 1, left: 2, right: 3 };
+    }
+
     const screen = gridToScreen(x, y);
     // Origin at (0.5, 0.75) aligns a character's feet with the diamond center
     this.sprite = scene.add.sprite(screen.x, screen.y, textureKey, 0).setOrigin(0.5, 0.75);
-    if (!isPlayer) {
-      this.sprite.setTint(0xff5555);
-    }
 
     this.hpBar = scene.add.graphics();
 
@@ -53,6 +61,10 @@ export class Kombatant {
 
     this.drawHpBar();
     this.updateDepth();
+  }
+
+  setDirection(direction: FacingDirection) {
+    this.sprite.setFrame(this.facingFrames[direction]);
   }
 
   setPosition(x: number, y: number) {

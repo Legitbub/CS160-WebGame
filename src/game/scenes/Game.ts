@@ -24,10 +24,6 @@ export class Game extends Scene
         // Load tilemap (room layout) and tileset (building blocks)
         this.load.image('tiles', '/scene_tilemaps/Cottage_Tileset/Cottage_Tileset.png');
         this.load.tilemapTiledJSON('tiles_map', '/assets/test.json');
-        this.load.spritesheet("player_stationary", "/assets/stationary Nerdy Guy sprites.png", {
-            frameWidth: 32,
-            frameHeight: 32
-        });
     }
 
     init(data: {spawnAt: {x: number, y: number}}) {

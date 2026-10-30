@@ -4,6 +4,7 @@ import { CONSTANTS } from "./utilities/Constants";
 export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
     private arrows!: Phaser.Types.Input.Keyboard.CursorKeys;
     private isMoving = false;
+    private isFrozen = false;
     private collisionLayer?: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
     private currentDirection = "down";
     private facingFrames: {[key: string]: number } = {
@@ -33,9 +34,23 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
         this.collisionLayer = layer;
     }
 
+    public setFrozen(frozen: boolean) {
+        this.isFrozen = frozen;
+    }
+
+    public getFrozen(): boolean {
+        return this.isFrozen;
+    }
+
+    public stepDown() {
+        this.currentDirection = "down";
+        this.anims.play("player-down", true);
+        this.moveTile(0, 1);
+    }
+
     // Handle player input for movement
     update() {
-        if (!this.arrows || this.isMoving) return;
+        if (!this.arrows || this.isMoving || this.isFrozen) return;
 
         let moveX = 0;
         let moveY = 0;

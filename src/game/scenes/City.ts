@@ -32,8 +32,8 @@ export class City extends Scene {
         this.load.image('entering_pizza', '/assets/cutscene_slides/entering the pizza place.jpg');
     }
 
-    init(data: {spawnAt: {x: number, y: number}}) {
-        this.spawnAt = data.spawnAt;
+    init(data: {spawnAt?: {x: number, y: number}}) {
+        this.spawnAt = data?.spawnAt;
     }
 
     create ()
@@ -155,12 +155,21 @@ export class City extends Scene {
             ]
         };
 
+        const blockedDoors: Record<string, string | string[]> = {};
+        if (this.registry.get("bankCompleted")) {
+            blockedDoors.Battle_in_Bank = "You already beat the bank!";
+        }
+        if (this.registry.get("pizzaCompleted")) {
+            blockedDoors.PizzaShop = "You already finished your shift at the pizza shop!";
+        }
+
         this.doors = makeDoors({
             scene: this,
             tilemap: tilemap,
             player: this.player,
             layer: "Doors",
-            cutscenes: doorCutscenes
+            cutscenes: doorCutscenes,
+            blockedDoors: blockedDoors
         });
 
         EventBus.emit('current-scene-ready', this);

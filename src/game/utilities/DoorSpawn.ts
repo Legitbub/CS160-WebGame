@@ -2,6 +2,7 @@ import { Scene } from "phaser";
 import { CONSTANTS } from "./Constants";
 import { PlayerCharacter } from "../PlayerCharacter";
 import { CutscenePayload, CutsceneSlide } from "../scenes/Cutscene";
+import { showTextBox } from "./TextBox";
 
 export interface DoorDetails {
     tileX: number;
@@ -9,6 +10,7 @@ export interface DoorDetails {
     exitTo: string;
     spawnAt?: { x: number; y: number };
     slides?: CutsceneSlide[];
+    blockedMessage?: string | string[];
 }
 
 export interface DoorLocation {
@@ -18,10 +20,11 @@ export interface DoorLocation {
     layer?: string;
     fadeTime?: number;
     cutscenes?: Record<string, CutsceneSlide[]>;
+    blockedDoors?: Record<string, string | string[]>;
 }
 
 // Make a list of the doors in the scene and assign them exit properties
-export function makeDoors({scene, tilemap, player, layer, fadeTime = 750, cutscenes}
+export function makeDoors({scene, tilemap, player, layer, fadeTime = 750, cutscenes, blockedDoors}
     : DoorLocation): DoorDetails[] {
     const doorObjects = tilemap.getObjectLayer(layer)?.objects || [];
     const doors: DoorDetails[] = doorObjects.map((d) => {
@@ -34,7 +37,8 @@ export function makeDoors({scene, tilemap, player, layer, fadeTime = 750, cutsce
             tileY: Math.floor((d.y ?? 0) / CONSTANTS.TILE_SIZE),
             exitTo: exitTo,
             spawnAt: {x: spawnX, y: spawnY},
-            slides: exitTo ? cutscenes?.[exitTo] : undefined
+            slides: exitTo ? cutscenes?.[exitTo] : undefined,
+            blockedMessage: exitTo ? blockedDoors?.[exitTo] : undefined
         };
     });
 
@@ -47,6 +51,18 @@ export function makeDoors({scene, tilemap, player, layer, fadeTime = 750, cutsce
 
         const matchingDoor = doors.find(d => d.tileX === tileX && d.tileY === tileY);
         if (matchingDoor) {
+            if (matchingDoor.blockedMessage) {
+                showTextBox({
+                    scene,
+                    player,
+                    pages: matchingDoor.blockedMessage,
+                    onComplete: () => {
+                        player.stepDown();
+                    }
+                });
+                return;
+            }
+
             fading = true;
             scene.cameras.main.fadeOut(fadeTime, 0, 0, 0);
             scene.cameras.main.once('camerafadeoutcomplete', () => {

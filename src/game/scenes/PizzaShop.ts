@@ -191,6 +191,7 @@ export class PizzaShop extends Scene {
     private leaveToCity() {
         this.orderTimer?.remove(false);
         this.orderTimer = undefined;
+        this.registry.set("pizzaCompleted", true);
         this.scene.start("City", { spawnAt: { x: 2, y: 16 } });
     }
 

@@ -865,6 +865,7 @@ export class Battle_in_Bank extends Scene {
 
         if (!enemiesAlive) {
             this.state = 'GAME_OVER';
+            this.registry.set("bankCompleted", true);
             this.actionMenuContainer.setVisible(false);
             this.turnBannerText.setText("VICTORY!");
             this.infoText.setText("All bank guards defeated! Press ENTER to return to City.");
@@ -1082,7 +1083,7 @@ export class Battle_in_Bank extends Scene {
             if (confirmPressed) {
                 const playersAlive = this.units.some(u => u.isPlayer && u.hp > 0);
                 if (playersAlive) {
-                    this.scene.start("City");
+                    this.scene.start("City", { spawnAt: { x: 23, y: 6 } });
                 } else {
                     this.scene.restart();
                 }

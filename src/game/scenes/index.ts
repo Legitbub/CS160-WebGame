@@ -6,3 +6,4 @@ export { Game } from "./Game";
 export { GameOver } from "./GameOver";
 export { Preloader } from "./Preloader";
 export { Cutscene } from "./Cutscene"
+export { Runner } from "./Runner";

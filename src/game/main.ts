@@ -28,7 +28,8 @@ const config: Phaser.Types.Core.GameConfig = {
         Scenes.Game,
         Scenes.City,
         Scenes.Battle_in_Bank,
-        Scenes.GameOver
+        Scenes.GameOver,
+        Scenes.Runner
     ]
 };
 

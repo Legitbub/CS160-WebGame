@@ -47,9 +47,9 @@ export class City extends Scene {
         const tileset2 = tilemap.addTilesetImage("Player House", "player_house")!;
         const tileset3 = tilemap.addTilesetImage("Urban City", "urban_city")!;
 
-        const floorLayer = tilemap.createLayer('Ground', tileset1);
+        const floorLayer = tilemap.createLayer('Ground', [tileset1, tileset3]);
         const buildings = tilemap.createLayer("Buildings", [tileset1, tileset2, tileset3]);
-        this.objectLayer = tilemap.createLayer('Object Tiles', tileset1)!;
+        this.objectLayer = tilemap.createLayer('Object Tiles', [tileset1, tileset3])!;
 
 
         this.player = PlayerSpawn({

@@ -1,7 +1,7 @@
 import { GameObjects, Scene, Types, Input } from 'phaser';
-import { CutscenePayload, CutsceneSlide } from './Cutscene';
 import { Preloader } from './Preloader';
 import { EventBus } from '../EventBus';
+import { INTRO_CUTSCENE } from '../utilities/SlideDeck';
 
 export class MainMenu extends Scene
 {
@@ -131,55 +131,12 @@ export class MainMenu extends Scene
     private confirmSelection() {
         const chosen = this.menuButtons[this.selected];
         if (chosen === "New Game") {
-            const introSetup: CutscenePayload = {
-                slides: [
-                    {
-                        textureKey: "intro_slide",
-                        text: "Hi sweetie, it's Mom! I am so excited to visit you! How is the new job?",
-                        textColor: '#ffffff',
-                        // Ken Burns arcade zoom/pan: subtle punch-in toward mom's thought bubble
-                        zoom: 1.15,
-                        panX: -20,
-                        panY: 10,
-                        duration: 5000,
-                        // sfxKey: 'phone_ring',
-                        // // bgmKey: 'intro_bgm'
-                    },
-                    {
-                        textureKey: "intro_slide",
-                        text: "Uh yeah...it's great Mom, haha...",
-                        textColor: '#ffffff',
-                        zoom: 1,
-                        panX: 0,
-                        panY: 0,
-                        duration: 1000,
-                        // sfxKey: 'phone_ring', 
-                        // bgmKey: 'intro_bgm'
-                    },
-                    {
-                        textureKey: "intro_slide",
-                        text: "Ok, can't wait to see you tonight! Goodbye sweetie!",
-                        textColor: '#ffffff',
-                        zoom: 1,
-                        panX: 0,
-                        panY: 0,
-                        duration: 5000,
-                        // sfxKey: 'phone_ring', 
-                        // bgmKey: 'intro_bgm'
-                    },
-                    {
-                        textureKey: "intro_slide_2",
-                        text: "Oh man, I need to get a job...........NOW!!!!!",
-                        textColor: '#ffffff',
-                        zoom: 1,
-                        panX: 0,
-                        panY: 0,
-                    }
-                ],
-                nextSceneKey: "Game",
-                nextSceneData: {}
-            }
-            this.scene.start("Cutscene", introSetup);
+            this.registry.set("bankCompleted", false);
+            this.registry.set("pizzaCompleted", false);
+            this.registry.set("drivingCompleted", false);
+            this.registry.set("runnerCompleted", false);
+
+            this.scene.start("Cutscene", INTRO_CUTSCENE);
         } else if (chosen === "Settings") {
 
         }

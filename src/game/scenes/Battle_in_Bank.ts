@@ -1,35 +1,21 @@
 import { EventBus } from "../EventBus";
 import * as Phaser from "phaser";
 import { Input, Scene, Types } from "phaser";
-import { TILE_HEIGHT, TILE_WIDTH, gridToScreen, screenToGrid, getTileCorners } from "../bank_level/GridConversion";
-import { BattleGrid, BattleSquare, getReachableCells, findPath, getAttackableCells, getItemTargetCells } from "../bank_level/Battlefield";
+import { TILE_WIDTH, gridToScreen, screenToGrid, getTileCorners } from "../bank_level/GridConversion";
+import { BattleGrid, BattleSquare } from "../bank_level/Battlefield";
 import { Kombatant } from "../bank_level/Kombatant";
+import {
+    BankBattleLogic,
+    BankBattleView,
+    INITIAL_BANK_UNITS,
+    MenuOption
+} from "../bank_level/BankBattleLogic";
 
-interface MenuOption {
-    label: string;
-    enabled: boolean;
-    disabledReason?: string;
-    action: () => void;
-}
-
-interface ItemDefinition {
-    name: string;
-    description: string;
-    count: number;
-    effect: 'heal' | 'damage';
-    amount: number;
-}
-
-export class Battle_in_Bank extends Scene {
+export class Battle_in_Bank extends Scene implements BankBattleView {
     camera: Phaser.Cameras.Scene2D.Camera;
     gameText: Phaser.GameObjects.Text;
-    
-    private grid!: BattleGrid;
-    private units: Kombatant[] = [];
-    private activeUnitIndex: number = 0;
-    private state: 'WAITING_FOR_TURN' | 'UNIT_MENU' | 'SELECTING_MOVE' | 
-    'SELECTING_ACTION' | 'SELECTING_FIGHT_TARGET' | 'SELECTING_ITEM_TARGET' |
-     'AI_TURN' | 'GAME_OVER' = 'WAITING_FOR_TURN';
+
+    private battle!: BankBattleLogic;
 
     private highlightGraphics!: Phaser.GameObjects.Graphics;
     private cursorGraphics!: Phaser.GameObjects.Graphics;
@@ -46,12 +32,7 @@ export class Battle_in_Bank extends Scene {
     private menuBg!: Phaser.GameObjects.Graphics;
     private menuPointer!: Phaser.GameObjects.Text;
 
-    private highlightedSquares: BattleSquare[] = [];
     private hoveredGridPos: { x: number; y: number } | null = null;
-    private isAnimatingMove: boolean = false;
-
-    private inventory: ItemDefinition[] = [];
-    private selectedItem: ItemDefinition | null = null;
 
     private cursors?: Types.Input.Keyboard.CursorKeys;
     private keyW?: Input.Keyboard.Key;
@@ -100,36 +81,182 @@ export class Battle_in_Bank extends Scene {
             floorLayer.setDepth(0);
         }
 
-        // Initialize battle grid matching the 19x14 isometric map
-        this.grid = new BattleGrid(tilemap.width, tilemap.height);
-
         // Graphics layers for isometric tile highlights and hover cursor
         this.highlightGraphics = this.add.graphics().setDepth(2);
         this.cursorGraphics = this.add.graphics().setDepth(3);
 
-        // Initialize player inventory for the "Items" option
-        this.inventory = [
-            { name: "Potion", description: "Restores 40 HP to a unit", count: 3, effect: 'heal', amount: 40 },
-            { name: "Hi-Potion", description: "Restores 80 HP to a unit", count: 1, effect: 'heal', amount: 80 },
-            { name: "Coin Toss", description: "Deals 25 DMG to a target", count: 3, effect: 'damage', amount: 25 }
-        ];
+        // Initialize battle grid and spawn initial units
+        const grid = new BattleGrid(tilemap.width, tilemap.height);
+        const units = INITIAL_BANK_UNITS.map(cfg => {
+            const unit = new Kombatant(this, cfg.name, cfg.x, cfg.y, cfg.speed, cfg.isPlayer, cfg.textureKey);
+            unit.setDirection(cfg.isPlayer ? 'right' : 'left');
+            grid.squares[cfg.x][cfg.y].occupiedBy = unit;
+            return unit;
+        });
 
-        // Spawn player and enemy units with interleaved speeds so turns alternate Player <-> Enemy
-        this.units = [];
-        this.spawnUnit("Hero", 6, 5, 12, true, "player_stationary");
-        this.spawnUnit("Bank Guard", 9, 5, 11, false, "robber_stationary");
-        this.spawnUnit("Security Guard", 6, 8, 10, true, "security_guard_stationary");
-        this.spawnUnit("Chief Teller", 9, 8, 9, false, "robber_stationary");
+        this.battle = new BankBattleLogic(grid, units, this);
 
         // Build UI (Turn banner, Controls Guide, Unit Status HUD, Info bar, and FFT-style Options Menu)
         this.createUI();
         this.setupInput();
 
-        this.state = 'WAITING_FOR_TURN';
-        this.advanceTurnOrder();
+        this.battle.startBattle();
 
         EventBus.emit('current-scene-ready', this);
     }
+
+    // --- BankBattleView Implementation ---
+
+    setTurnBanner(text: string) {
+        this.turnBannerText.setText(text);
+    }
+
+    setInfoText(text: string) {
+        this.infoText.setText(text);
+    }
+
+    updateUnitStatusPanel() {
+        if (!this.unitStatusText) return;
+        const lines: string[] = ["UNIT STATUS"];
+        for (const u of this.battle.units) {
+            const side = u.isPlayer ? "ALLY " : "ENEMY";
+            const status = u.hp > 0 ? `HP ${u.hp}/${u.maxHp}` : "DEFEATED";
+            lines.push(`[${side}] ${u.name}: ${status}`);
+        }
+        this.unitStatusText.setText(lines.join("\n"));
+    }
+
+    showMenu(title: string, options: MenuOption[]) {
+        this.populateMenu(title, options);
+    }
+
+    hideMenu() {
+        this.actionMenuContainer.setVisible(false);
+    }
+
+    updateHighlights() {
+        this.drawHighlights();
+    }
+
+    delay(ms: number, callback: () => void) {
+        this.time.delayedCall(ms, callback);
+    }
+
+    onVictory() {
+        this.registry.set("bankCompleted", true);
+    }
+
+    animateMove(unit: Kombatant, steps: BattleSquare[], onComplete: () => void) {
+        const stepNext = (index: number) => {
+            if (index >= steps.length) {
+                onComplete();
+                return;
+            }
+
+            const nextSquare = steps[index];
+            const dx = nextSquare.x - unit.gridX;
+            const dy = nextSquare.y - unit.gridY;
+            this.updateSpriteDirection(unit, dx, dy);
+
+            const destScreen = gridToScreen(nextSquare.x, nextSquare.y);
+            this.tweens.add({
+                targets: unit.sprite,
+                x: destScreen.x,
+                y: destScreen.y,
+                duration: 140,
+                onUpdate: () => {
+                    unit.syncOverheadUI();
+                },
+                onComplete: () => {
+                    unit.setPosition(nextSquare.x, nextSquare.y);
+                    stepNext(index + 1);
+                }
+            });
+        };
+
+        stepNext(0);
+    }
+
+    animateAttack(
+        attacker: Kombatant,
+        defender: Kombatant,
+        targetSquare: BattleSquare,
+        onHit: () => void,
+        onComplete: () => void
+    ) {
+        const dx = targetSquare.x - attacker.gridX;
+        const dy = targetSquare.y - attacker.gridY;
+        this.updateSpriteDirection(attacker, dx, dy);
+
+        const origScreen = gridToScreen(attacker.gridX, attacker.gridY);
+        const defScreen = gridToScreen(defender.gridX, defender.gridY);
+        const lungeX = origScreen.x + (defScreen.x - origScreen.x) * 0.45;
+        const lungeY = origScreen.y + (defScreen.y - origScreen.y) * 0.45;
+
+        // Guard flag because Phaser's onYoyo fires once per tweened property (x and y)
+        let damageApplied = false;
+
+        this.tweens.add({
+            targets: attacker.sprite,
+            x: lungeX,
+            y: lungeY,
+            duration: 130,
+            yoyo: true,
+            onYoyo: () => {
+                if (damageApplied) return;
+                damageApplied = true;
+                onHit();
+            },
+            onUpdate: () => {
+                attacker.syncOverheadUI();
+            },
+            onComplete
+        });
+    }
+
+    showDamageOrHealEffect(target: Kombatant, delta: number, actualDelta: number) {
+        // Hit flash & shake feedback when damaged
+        if (delta < 0 && target.hp > 0) {
+            target.sprite.setTint(0xffff66);
+            const baseScreen = gridToScreen(target.gridX, target.gridY);
+            this.tweens.add({
+                targets: target.sprite,
+                x: baseScreen.x + 3,
+                duration: 45,
+                yoyo: true,
+                repeat: 3,
+                onComplete: () => {
+                    target.sprite.x = baseScreen.x;
+                    target.sprite.clearTint();
+                }
+            });
+        }
+
+        const screen = gridToScreen(target.gridX, target.gridY);
+        const shownAmount = delta >= 0 ? actualDelta : delta;
+        const label = delta >= 0 ? `+${shownAmount} HP` : `${shownAmount} HP`;
+        const color = delta >= 0 ? "#2ecc71" : "#ff3b3b";
+
+        const popText = this.add.text(screen.x, screen.y - 34, label, {
+            fontFamily: "Courier New, monospace",
+            fontSize: "20px",
+            fontStyle: "bold",
+            color,
+            stroke: "#000000",
+            strokeThickness: 4,
+            resolution: 2
+        }).setOrigin(0.5).setScale(0.45).setDepth(1001);
+
+        this.tweens.add({
+            targets: popText,
+            y: popText.y - 18,
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => popText.destroy()
+        });
+    }
+
+    // --- UI & Rendering Helpers ---
 
     /**
      * Computes the visible world bounds directly from camera.midPoint and zoom.
@@ -151,16 +278,6 @@ export class Battle_in_Bank extends Scene {
             width: viewW,
             height: viewH
         };
-    }
-
-    private spawnUnit(name: string, x: number, y: number, speed: number, isPlayer: boolean, textureKey?: string): Kombatant {
-        const resolvedTexture = textureKey ?? (isPlayer ? 'player_stationary' : 'robber_stationary');
-        const unit = new Kombatant(this, name, x, y, speed, isPlayer, resolvedTexture);
-        // Face players right (toward enemies) and enemies left (toward players)
-        unit.setDirection(isPlayer ? 'right' : 'left');
-        this.grid.squares[x][y].occupiedBy = unit;
-        this.units.push(unit);
-        return unit;
     }
 
     private createUI() {
@@ -198,7 +315,6 @@ export class Battle_in_Bank extends Scene {
         .setOrigin(0, 0)
         .setScale(invZoom)
         .setDepth(1000);
-        this.updateUnitStatusPanel();
 
         // Top-right Controls Guide box so the player immediately sees how to navigate
         const guideLines = [
@@ -264,17 +380,6 @@ export class Battle_in_Bank extends Scene {
         this.actionMenuContainer.add(this.menuPointer);
 
         this.actionMenuContainer.setVisible(false);
-    }
-
-    private updateUnitStatusPanel() {
-        if (!this.unitStatusText) return;
-        const lines: string[] = ["UNIT STATUS"];
-        for (const u of this.units) {
-            const side = u.isPlayer ? "ALLY " : "ENEMY";
-            const status = u.hp > 0 ? `HP ${u.hp}/${u.maxHp}` : "DEFEATED";
-            lines.push(`[${side}] ${u.name}: ${status}`);
-        }
-        this.unitStatusText.setText(lines.join("\n"));
     }
 
     private populateMenu(title: string, options: MenuOption[]) {
@@ -371,169 +476,16 @@ export class Battle_in_Bank extends Scene {
         }
     }
 
-    private openUnitMenu() {
-        const unit = this.units[this.activeUnitIndex];
-        if (!unit || !unit.isPlayer) return;
-
-        // If the unit has both moved and acted, automatically end its turn
-        if (unit.hasMoved && unit.hasActed) {
-            this.endTurn();
-            return;
+    private updateSpriteDirection(unit: Kombatant, dx: number, dy: number) {
+        if (dx > 0) {
+            unit.setDirection('right');
+        } else if (dx < 0) {
+            unit.setDirection('left');
+        } else if (dy > 0) {
+            unit.setDirection('down');
+        } else if (dy < 0) {
+            unit.setDirection('up');
         }
-
-        this.state = 'UNIT_MENU';
-        this.selectedItem = null;
-        this.highlightedSquares = [];
-        this.drawHighlights();
-
-        const hasItemsLeft = this.inventory.some(item => item.count > 0);
-        const enemyInRange = getAttackableCells(unit, this.grid).some(
-            sq => sq.occupiedBy && sq.occupiedBy.isPlayer !== unit.isPlayer
-        );
-
-        this.populateMenu(`${unit.name} (HP ${unit.hp}/${unit.maxHp})`, [
-            {
-                label: "Move",
-                enabled: !unit.hasMoved,
-                disabledReason: "Already moved this turn!",
-                action: () => this.startSelectingMove()
-            },
-            {
-                label: enemyInRange || unit.hasActed ? "Fight" : "Fight (Out of Range)",
-                enabled: !unit.hasActed,
-                disabledReason: "Already acted this turn!",
-                action: () => this.startSelectingFight()
-            },
-            {
-                label: "Items",
-                enabled: !unit.hasActed && hasItemsLeft,
-                disabledReason: unit.hasActed ? "Already acted this turn!" : "No items remaining!",
-                action: () => this.openItemsMenu()
-            },
-            {
-                label: "Wait (End Turn)",
-                enabled: true,
-                action: () => this.endTurn()
-            }
-        ]);
-
-        this.turnBannerText.setText(`★ ${unit.name}'s Turn (Player)`);
-        this.infoText.setText("Use ↑/↓ (or W/S) + ENTER, or click an option in the menu.");
-    }
-
-    private openItemsMenu() {
-        const unit = this.units[this.activeUnitIndex];
-        this.state = 'SELECTING_ACTION';
-        this.highlightedSquares = [];
-        this.drawHighlights();
-
-        const itemOptions: MenuOption[] = this.inventory.map(item => ({
-            label: `${item.name} x${item.count}`,
-            enabled: item.count > 0,
-            disabledReason: `Out of ${item.name}!`,
-            action: () => this.startSelectingItemTarget(item)
-        }));
-
-        itemOptions.push({
-            label: "← Back",
-            enabled: true,
-            action: () => this.openUnitMenu()
-        });
-
-        this.populateMenu(`${unit.name} - Items`, itemOptions);
-        this.infoText.setText("Select an item with ↑/↓ + ENTER or Click (ESC to go back)");
-    }
-
-    private startSelectingMove() {
-        const unit = this.units[this.activeUnitIndex];
-        this.state = 'SELECTING_MOVE';
-        this.highlightedSquares = getReachableCells(unit, this.grid);
-        this.drawHighlights();
-
-        this.populateMenu(`${unit.name} - Move`, [
-            {
-                label: "← Back to Menu",
-                enabled: true,
-                action: () => this.cancelSubState()
-            },
-            {
-                label: "Wait (End Turn)",
-                enabled: true,
-                action: () => this.endTurn()
-            }
-        ]);
-        this.infoText.setText("Click any BLUE isometric tile to move there (or ESC to cancel)");
-    }
-
-    private startSelectingFight() {
-        const unit = this.units[this.activeUnitIndex];
-        this.state = 'SELECTING_FIGHT_TARGET';
-        this.highlightedSquares = getAttackableCells(unit, this.grid);
-        this.drawHighlights();
-
-        const enemySquares = this.highlightedSquares.filter(
-            sq => sq.occupiedBy && sq.occupiedBy.isPlayer !== unit.isPlayer && sq.occupiedBy.hp > 0
-        );
-
-        const fightOptions: MenuOption[] = enemySquares.map(sq => {
-            const enemy = sq.occupiedBy!;
-            return {
-                label: `⚔ Attack ${enemy.name} (${enemy.hp} HP)`,
-                enabled: true,
-                action: () => this.executeFight(unit, sq)
-            };
-        });
-
-        fightOptions.push(
-            {
-                label: "← Back to Menu",
-                enabled: true,
-                action: () => this.cancelSubState()
-            },
-            {
-                label: "Wait (End Turn)",
-                enabled: true,
-                action: () => this.endTurn()
-            }
-        );
-
-        this.populateMenu(`${unit.name} - Fight`, fightOptions);
-
-        if (enemySquares.length > 0) {
-            this.infoText.setText("Press ENTER, click '⚔ Attack' in menu, or click the enemy to attack!");
-        } else {
-            this.infoText.setText("No enemy in adjacent RED tiles! Move closer first, or choose Wait.");
-        }
-    }
-
-    private startSelectingItemTarget(item: ItemDefinition) {
-        const unit = this.units[this.activeUnitIndex];
-        this.selectedItem = item;
-        this.state = 'SELECTING_ITEM_TARGET';
-        this.highlightedSquares = getItemTargetCells(unit, this.grid);
-        this.drawHighlights();
-
-        const unitSquares = this.highlightedSquares.filter(
-            sq => sq.occupiedBy && sq.occupiedBy.hp > 0
-        );
-
-        const targetOptions: MenuOption[] = unitSquares.map(sq => {
-            const target = sq.occupiedBy!;
-            return {
-                label: `✦ Use on ${target.name} (${target.hp}/${target.maxHp})`,
-                enabled: true,
-                action: () => this.executeItem(unit, sq)
-            };
-        });
-
-        targetOptions.push({
-            label: "← Back to Items",
-            enabled: true,
-            action: () => this.cancelSubState()
-        });
-
-        this.populateMenu(`${unit.name} - ${item.name}`, targetOptions);
-        this.infoText.setText(`${item.name}: ${item.description} — Press ENTER or click target!`);
     }
 
     /**
@@ -543,7 +495,7 @@ export class Battle_in_Bank extends Scene {
      */
     private findClickedHighlightedSquare(worldX: number, worldY: number): BattleSquare | undefined {
         // 1. Check if the user clicked directly on a unit's sprite standing on a highlighted square
-        for (const sq of this.highlightedSquares) {
+        for (const sq of this.battle.highlightedSquares) {
             if (sq.occupiedBy && sq.occupiedBy.hp > 0) {
                 const bounds = sq.occupiedBy.sprite.getBounds();
                 if (bounds.contains(worldX, worldY)) {
@@ -554,8 +506,8 @@ export class Battle_in_Bank extends Scene {
 
         // 2. Otherwise check the isometric floor tile diamond
         const { x, y } = screenToGrid(worldX, worldY);
-        if (!this.grid.isValidSquare(x, y)) return undefined;
-        return this.highlightedSquares.find(s => s.x === x && s.y === y);
+        if (!this.battle.grid.isValidSquare(x, y)) return undefined;
+        return this.battle.highlightedSquares.find(s => s.x === x && s.y === y);
     }
 
     private setupInput() {
@@ -577,7 +529,7 @@ export class Battle_in_Bank extends Scene {
                 this.hoveredGridPos = { x: unitSquare.x, y: unitSquare.y };
             } else {
                 const gridPos = screenToGrid(worldPoint.x, worldPoint.y);
-                if (this.grid.isValidSquare(gridPos.x, gridPos.y)) {
+                if (this.battle.grid.isValidSquare(gridPos.x, gridPos.y)) {
                     this.hoveredGridPos = gridPos;
                 } else {
                     this.hoveredGridPos = null;
@@ -587,21 +539,17 @@ export class Battle_in_Bank extends Scene {
         });
 
         this.input.on("pointerdown", (pointer: Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
-            if (this.isAnimatingMove) return;
+            if (this.battle.isAnimatingMove) return;
 
             // Ignore map clicks if the user clicked on a menu item
             if (currentlyOver && currentlyOver.length > 0) return;
 
             if (pointer.rightButtonDown()) {
-                this.cancelSubState();
+                this.battle.cancelSubState();
                 return;
             }
 
-            if (
-                this.state !== 'SELECTING_MOVE' &&
-                this.state !== 'SELECTING_FIGHT_TARGET' &&
-                this.state !== 'SELECTING_ITEM_TARGET'
-            ) {
+            if (!this.battle.isTargetSelectionState()) {
                 return;
             }
 
@@ -609,397 +557,7 @@ export class Battle_in_Bank extends Scene {
             const clickedSquare = this.findClickedHighlightedSquare(worldPoint.x, worldPoint.y);
             if (!clickedSquare) return;
 
-            if (this.state === 'SELECTING_MOVE') {
-                this.executeMove(this.units[this.activeUnitIndex], clickedSquare);
-            } else if (this.state === 'SELECTING_FIGHT_TARGET') {
-                this.executeFight(this.units[this.activeUnitIndex], clickedSquare);
-            } else if (this.state === 'SELECTING_ITEM_TARGET') {
-                this.executeItem(this.units[this.activeUnitIndex], clickedSquare);
-            }
-        });
-    }
-
-    private cancelSubState() {
-        if (this.state === 'SELECTING_ITEM_TARGET') {
-            this.openItemsMenu();
-        } else if (
-            this.state === 'SELECTING_MOVE' ||
-            this.state === 'SELECTING_FIGHT_TARGET' ||
-            this.state === 'SELECTING_ACTION'
-        ) {
-            this.openUnitMenu();
-        }
-    }
-
-    private executeMove(unit: Kombatant, targetSquare: BattleSquare, onComplete?: () => void) {
-        const path = findPath(unit, targetSquare, this.grid);
-        if (path.length <= 1) {
-            onComplete?.();
-            return;
-        }
-
-        this.isAnimatingMove = true;
-        this.highlightedSquares = [];
-        this.drawHighlights();
-        if (unit.isPlayer) {
-            this.actionMenuContainer.setVisible(false);
-        }
-
-        this.grid.squares[unit.gridX][unit.gridY].occupiedBy = undefined;
-
-        const steps = path.slice(1);
-        const stepNext = (index: number) => {
-            if (index >= steps.length) {
-                this.grid.squares[unit.gridX][unit.gridY].occupiedBy = unit;
-                unit.hasMoved = true;
-                this.isAnimatingMove = false;
-                if (onComplete) {
-                    onComplete();
-                } else if (unit.isPlayer) {
-                    this.openUnitMenu();
-                }
-                return;
-            }
-
-            const nextSquare = steps[index];
-            const dx = nextSquare.x - unit.gridX;
-            const dy = nextSquare.y - unit.gridY;
-            this.updateSpriteDirection(unit, dx, dy);
-
-            const destScreen = gridToScreen(nextSquare.x, nextSquare.y);
-            this.tweens.add({
-                targets: unit.sprite,
-                x: destScreen.x,
-                y: destScreen.y,
-                duration: 140,
-                onUpdate: () => {
-                    unit.syncOverheadUI();
-                },
-                onComplete: () => {
-                    unit.setPosition(nextSquare.x, nextSquare.y);
-                    stepNext(index + 1);
-                }
-            });
-        };
-
-        stepNext(0);
-    }
-
-    private updateSpriteDirection(unit: Kombatant, dx: number, dy: number) {
-        if (dx > 0) {
-            unit.setDirection('right');
-        } else if (dx < 0) {
-            unit.setDirection('left');
-        } else if (dy > 0) {
-            unit.setDirection('down');
-        } else if (dy < 0) {
-            unit.setDirection('up');
-        }
-    }
-
-    private executeFight(attacker: Kombatant, targetSquare: BattleSquare, onComplete?: () => void) {
-        const defender = targetSquare.occupiedBy;
-        if (!defender || defender.isPlayer === attacker.isPlayer) {
-            this.infoText.setText("No enemy on that tile! Click an enemy or select '⚔ Attack' in the menu.");
-            onComplete?.();
-            return;
-        }
-
-        this.isAnimatingMove = true;
-        this.actionMenuContainer.setVisible(false);
-        this.highlightedSquares = [];
-        this.drawHighlights();
-
-        const dx = targetSquare.x - attacker.gridX;
-        const dy = targetSquare.y - attacker.gridY;
-        this.updateSpriteDirection(attacker, dx, dy);
-
-        const damage = attacker.isPlayer ? 35 : 25;
-        const origScreen = gridToScreen(attacker.gridX, attacker.gridY);
-        const defScreen = gridToScreen(defender.gridX, defender.gridY);
-        const lungeX = origScreen.x + (defScreen.x - origScreen.x) * 0.45;
-        const lungeY = origScreen.y + (defScreen.y - origScreen.y) * 0.45;
-
-        // Guard flag because Phaser's onYoyo fires once per tweened property (x and y)
-        let damageApplied = false;
-
-        this.tweens.add({
-            targets: attacker.sprite,
-            x: lungeX,
-            y: lungeY,
-            duration: 130,
-            yoyo: true,
-            onYoyo: () => {
-                if (damageApplied) return;
-                damageApplied = true;
-                this.applyDamageOrHeal(defender, -damage);
-                this.infoText.setText(
-                    `${attacker.name} hit ${defender.name} for ${damage} DMG! (${defender.name} HP: ${defender.hp}/${defender.maxHp})`
-                );
-            },
-            onUpdate: () => {
-                attacker.syncOverheadUI();
-            },
-            onComplete: () => {
-                attacker.setPosition(attacker.gridX, attacker.gridY);
-                attacker.hasActed = true;
-                this.isAnimatingMove = false;
-
-                if (this.checkBattleEnd()) {
-                    return;
-                }
-
-                if (onComplete) {
-                    onComplete();
-                } else if (attacker.isPlayer) {
-                    // Automatically finish the player's turn after attacking so the next unit (enemy) acts
-                    this.time.delayedCall(550, () => {
-                        if (this.state !== 'GAME_OVER') {
-                            this.endTurn();
-                        }
-                    });
-                }
-            }
-        });
-    }
-
-    private executeItem(user: Kombatant, targetSquare: BattleSquare) {
-        if (!this.selectedItem) return;
-        const target = targetSquare.occupiedBy;
-        if (!target) {
-            this.infoText.setText("Select a green tile occupied by a unit!");
-            return;
-        }
-
-        const item = this.selectedItem;
-        this.selectedItem = null;
-        this.isAnimatingMove = true;
-        this.actionMenuContainer.setVisible(false);
-        this.highlightedSquares = [];
-        this.drawHighlights();
-
-        if (item.effect === 'heal') {
-            const healed = this.applyDamageOrHeal(target, item.amount);
-            this.infoText.setText(
-                `${user.name} used ${item.name} on ${target.name}! (+${healed} HP -> ${target.hp}/${target.maxHp})`
-            );
-        } else {
-            const dealt = Math.abs(this.applyDamageOrHeal(target, -item.amount));
-            this.infoText.setText(
-                `${user.name} threw ${item.name} at ${target.name} for ${dealt} DMG! (${target.hp}/${target.maxHp} HP)`
-            );
-        }
-
-        item.count = Math.max(0, item.count - 1);
-        user.hasActed = true;
-
-        this.time.delayedCall(600, () => {
-            this.isAnimatingMove = false;
-            if (!this.checkBattleEnd() && user.isPlayer) {
-                this.endTurn();
-            }
-        });
-    }
-
-    private applyDamageOrHeal(target: Kombatant, delta: number): number {
-        const prevHp = target.hp;
-        target.hp = Math.max(0, Math.min(target.maxHp, prevHp + delta));
-        const actualDelta = target.hp - prevHp;
-
-        target.updateHpText();
-        this.updateUnitStatusPanel();
-
-        // Hit flash & shake feedback when damaged
-        if (delta < 0 && target.hp > 0) {
-            target.sprite.setTint(0xffff66);
-            const baseScreen = gridToScreen(target.gridX, target.gridY);
-            this.tweens.add({
-                targets: target.sprite,
-                x: baseScreen.x + 3,
-                duration: 45,
-                yoyo: true,
-                repeat: 3,
-                onComplete: () => {
-                    target.sprite.x = baseScreen.x;
-                    target.sprite.clearTint();
-                }
-            });
-        }
-
-        const screen = gridToScreen(target.gridX, target.gridY);
-        const shownAmount = delta >= 0 ? actualDelta : delta;
-        const label = delta >= 0 ? `+${shownAmount} HP` : `${shownAmount} HP`;
-        const color = delta >= 0 ? "#2ecc71" : "#ff3b3b";
-
-        const popText = this.add.text(screen.x, screen.y - 34, label, {
-            fontFamily: "Courier New, monospace",
-            fontSize: "20px",
-            fontStyle: "bold",
-            color,
-            stroke: "#000000",
-            strokeThickness: 4,
-            resolution: 2
-        }).setOrigin(0.5).setScale(0.45).setDepth(1001);
-
-        this.tweens.add({
-            targets: popText,
-            y: popText.y - 18,
-            alpha: 0,
-            duration: 1000,
-            onComplete: () => popText.destroy()
-        });
-
-        if (target.hp <= 0) {
-            this.grid.squares[target.gridX][target.gridY].occupiedBy = undefined;
-            target.sprite.setVisible(false);
-            target.hpText?.setVisible(false);
-            target.hpBar?.clear();
-        }
-
-        return actualDelta;
-    }
-
-    private checkBattleEnd(): boolean {
-        const playersAlive = this.units.some(u => u.isPlayer && u.hp > 0);
-        const enemiesAlive = this.units.some(u => !u.isPlayer && u.hp > 0);
-
-        if (!enemiesAlive) {
-            this.state = 'GAME_OVER';
-            this.registry.set("bankCompleted", true);
-            this.actionMenuContainer.setVisible(false);
-            this.turnBannerText.setText("VICTORY!");
-            this.infoText.setText("All bank guards defeated! Press ENTER to return to City.");
-            return true;
-        }
-
-        if (!playersAlive) {
-            this.state = 'GAME_OVER';
-            this.actionMenuContainer.setVisible(false);
-            this.turnBannerText.setText("DEFEAT...");
-            this.infoText.setText("Your party was defeated! Press ENTER to retry.");
-            return true;
-        }
-
-        return false;
-    }
-
-    private endTurn() {
-        const activeUnit = this.units[this.activeUnitIndex];
-        if (activeUnit) {
-            activeUnit.ct = Math.max(0, activeUnit.ct - 100);
-            activeUnit.hasMoved = false;
-            activeUnit.hasActed = false;
-        }
-
-        this.actionMenuContainer.setVisible(false);
-        this.highlightedSquares = [];
-        this.drawHighlights();
-
-        if (!this.checkBattleEnd()) {
-            this.state = 'WAITING_FOR_TURN';
-            this.advanceTurnOrder();
-        }
-    }
-
-    private advanceTurnOrder() {
-        const aliveUnits = this.units.filter(u => u.hp > 0);
-        if (aliveUnits.length === 0) return;
-
-        // Tick CT (Charge Time) until a unit reaches >= 100
-        let readyUnit: Kombatant | undefined;
-        while (!readyUnit) {
-            for (const unit of aliveUnits) {
-                unit.ct += unit.speed;
-                if (unit.ct >= 100 && (!readyUnit || unit.ct > readyUnit.ct)) {
-                    readyUnit = unit;
-                }
-            }
-        }
-
-        this.activeUnitIndex = this.units.indexOf(readyUnit);
-        readyUnit.hasMoved = false;
-        readyUnit.hasActed = false;
-
-        if (readyUnit.isPlayer) {
-            this.openUnitMenu();
-        } else {
-            this.runAITurn(readyUnit);
-        }
-    }
-
-    private runAITurn(aiUnit: Kombatant) {
-        this.state = 'AI_TURN';
-        this.actionMenuContainer.setVisible(false);
-        this.highlightedSquares = [];
-        this.drawHighlights();
-        this.turnBannerText.setText(`⚔ ${aiUnit.name}'s Turn (Enemy)`);
-        this.infoText.setText(`${aiUnit.name} is moving...`);
-
-        this.time.delayedCall(500, () => {
-            if (this.state === 'GAME_OVER') return;
-
-            const playerTargets = this.units.filter(u => u.isPlayer && u.hp > 0);
-            if (playerTargets.length === 0) {
-                this.endTurn();
-                return;
-            }
-
-            // Find closest player unit by Manhattan distance
-            let closestPlayer = playerTargets[0];
-            let bestDist = Math.abs(aiUnit.gridX - closestPlayer.gridX) + Math.abs(aiUnit.gridY - closestPlayer.gridY);
-            for (const p of playerTargets) {
-                const d = Math.abs(aiUnit.gridX - p.gridX) + Math.abs(aiUnit.gridY - p.gridY);
-                if (d < bestDist) {
-                    bestDist = d;
-                    closestPlayer = p;
-                }
-            }
-
-            const performAttackAndFinish = () => {
-                if (this.state === 'GAME_OVER') return;
-                this.drawHighlights();
-
-                const attackSquares = getAttackableCells(aiUnit, this.grid);
-                const targetSquare = attackSquares.find(
-                    sq => sq.occupiedBy && sq.occupiedBy.isPlayer && sq.occupiedBy.hp > 0
-                );
-                if (targetSquare && targetSquare.occupiedBy) {
-                    this.executeFight(aiUnit, targetSquare, () => {
-                        this.time.delayedCall(600, () => {
-                            if (this.state !== 'GAME_OVER') {
-                                this.endTurn();
-                            }
-                        });
-                    });
-                } else {
-                    this.infoText.setText(`${aiUnit.name} ends their turn.`);
-                    this.time.delayedCall(500, () => {
-                        if (this.state !== 'GAME_OVER') {
-                            this.endTurn();
-                        }
-                    });
-                }
-            };
-
-            // Move closer if not already adjacent
-            const reachable = getReachableCells(aiUnit, this.grid);
-            if (bestDist > aiUnit.attackRange && reachable.length > 0) {
-                let bestSquare = reachable[0];
-                let minAfterMove = Infinity;
-                for (const sq of reachable) {
-                    const d = Math.abs(sq.x - closestPlayer.gridX) + Math.abs(sq.y - closestPlayer.gridY);
-                    if (d < minAfterMove) {
-                        minAfterMove = d;
-                        bestSquare = sq;
-                    }
-                }
-
-                this.executeMove(aiUnit, bestSquare, () => {
-                    this.time.delayedCall(250, performAttackAndFinish);
-                });
-            } else {
-                performAttackAndFinish();
-            }
+            this.battle.handleSquareClick(clickedSquare);
         });
     }
 
@@ -1007,7 +565,7 @@ export class Battle_in_Bank extends Scene {
         this.highlightGraphics.clear();
 
         // Highlight the active unit's isometric square in gold
-        const activeUnit = this.units[this.activeUnitIndex];
+        const activeUnit = this.battle.getActiveUnit();
         if (activeUnit && activeUnit.hp > 0) {
             this.drawIsoTile(
                 this.highlightGraphics,
@@ -1022,13 +580,13 @@ export class Battle_in_Bank extends Scene {
 
         // Highlight reachable / attackable / item target squares
         let fillColor = 0x3498db;
-        if (this.state === 'SELECTING_FIGHT_TARGET') {
+        if (this.battle.state === 'SELECTING_FIGHT_TARGET') {
             fillColor = 0xe74c3c;
-        } else if (this.state === 'SELECTING_ITEM_TARGET') {
+        } else if (this.battle.state === 'SELECTING_ITEM_TARGET') {
             fillColor = 0x2ecc71;
         }
 
-        for (const sq of this.highlightedSquares) {
+        for (const sq of this.battle.highlightedSquares) {
             this.drawIsoTile(this.highlightGraphics, sq.x, sq.y, fillColor, 0.4, fillColor, 0.9);
         }
     }
@@ -1073,16 +631,15 @@ export class Battle_in_Bank extends Scene {
     }
 
     update() {
-        if (!this.cursors || !this.enterKey || !this.escKey || this.isAnimatingMove) return;
+        if (!this.cursors || !this.enterKey || !this.escKey || this.battle.isAnimatingMove) return;
 
         const confirmPressed =
             Input.Keyboard.JustDown(this.enterKey) ||
             (this.spaceKey ? Input.Keyboard.JustDown(this.spaceKey) : false);
 
-        if (this.state === 'GAME_OVER') {
+        if (this.battle.state === 'GAME_OVER') {
             if (confirmPressed) {
-                const playersAlive = this.units.some(u => u.isPlayer && u.hp > 0);
-                if (playersAlive) {
+                if (this.battle.arePlayersAlive()) {
                     this.scene.start("City", { spawnAt: { x: 23, y: 6 } });
                 } else {
                     this.scene.restart();
@@ -1092,17 +649,11 @@ export class Battle_in_Bank extends Scene {
         }
 
         if (Input.Keyboard.JustDown(this.escKey)) {
-            this.cancelSubState();
+            this.battle.cancelSubState();
             return;
         }
 
-        if (
-            this.state === 'UNIT_MENU' ||
-            this.state === 'SELECTING_ACTION' ||
-            this.state === 'SELECTING_MOVE' ||
-            this.state === 'SELECTING_FIGHT_TARGET' ||
-            this.state === 'SELECTING_ITEM_TARGET'
-        ) {
+        if (this.battle.isInteractiveMenuState()) {
             const count = this.currentMenuOptions.length;
             if (count === 0) return;
 

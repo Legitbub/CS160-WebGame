@@ -4,7 +4,7 @@ import { PlayerCharacter } from "../PlayerCharacter";
 import { CONSTANTS } from "../utilities/Constants"
 import { PlayerSetupOptions, PlayerSpawn } from "../utilities/PlayerSpawn";
 import { DoorDetails, makeDoors } from "../utilities/DoorSpawn";
-import { CutsceneSlide } from "./Cutscene";
+import { CITY_DOOR_CUTSCENES, ENDING_CUTSCENE } from "../utilities/SlideDeck";
 
 export class City extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
@@ -30,6 +30,13 @@ export class City extends Scene {
         this.load.image('entering_bank', '/assets/cutscene_slides/entering the bank.jpg');
         this.load.image('outside_pizza', '/assets/cutscene_slides/outside the pizza place.jpg');
         this.load.image('entering_pizza', '/assets/cutscene_slides/entering the pizza place.jpg');
+        this.load.image('getting_back_home', '/assets/cutscene_slides/getting back home.jpg');
+        this.load.image('frustrated', '/assets/cutscene_slides/frustrated.jpg');
+        this.load.image('inspiration', '/assets/cutscene_slides/inspiration.jpg');
+        this.load.image('gamedeving', '/assets/cutscene_slides/gamedeving.jpg');
+        this.load.image('mom_arrives', '/assets/cutscene_slides/mom arrives.jpg');
+        this.load.image('celebrate', '/assets/cutscene_slides/celebrate.jpg');
+        this.load.image('ending', '/assets/cutscene_slides/ending.jpg');
     }
 
     init(data: {spawnAt?: {x: number, y: number}}) {
@@ -38,6 +45,22 @@ export class City extends Scene {
 
     create ()
     {
+        const bankCompleted = Boolean(this.registry.get("bankCompleted"));
+        const pizzaCompleted = Boolean(this.registry.get("pizzaCompleted"));
+        const drivingCompleted = Boolean(
+            this.registry.get("drivingCompleted") || this.registry.get("runnerCompleted")
+        );
+
+        if (bankCompleted && pizzaCompleted && drivingCompleted) {
+            this.registry.set("bankCompleted", false);
+            this.registry.set("pizzaCompleted", false);
+            this.registry.set("drivingCompleted", false);
+            this.registry.set("runnerCompleted", false);
+
+            this.scene.start("Cutscene", ENDING_CUTSCENE);
+            return;
+        }
+
         this.camera = this.cameras.main;
         this.camera.roundPixels = true;
 
@@ -59,108 +82,15 @@ export class City extends Scene {
             spawnTile: this.spawnAt
         });
 
-        const doorCutscenes: Record<string, CutsceneSlide[]> = {
-            Battle_in_Bank: [
-                {
-                    textureKey: "outside_bank",
-                    text: "*Sigh* I guess I could try at the bank... Hopefully this goes well.",
-                    textColor: '#ffffff',
-                    zoom: 1,
-                    panX: 0,
-                    panY: 0,
-                },
-                {
-                    textureKey: "outside_bank",
-                    text: "*BANG!*",
-                    textColor: '#ffffff',
-                    zoom: 1,
-                    panX: 0,
-                    panY: 0,
-                },
-                {
-                    textureKey: "outside_bank",
-                    text: "Huh?!",
-                    textColor: '#ffffff',
-                    zoom: 1,
-                    panX: 0,
-                    panY: 0,
-                },
-                {
-                    textureKey: "entering_bank",
-                    text: "You there! We're being robbed!",
-                    textColor: '#ffffff',
-                    zoom: 1,
-                    panX: 0,
-                    panY: 0,
-                },
-                {
-                    textureKey: "entering_bank",
-                    text: "I was just looking for a job...",
-                    textColor: '#ffffff',
-                    zoom: 1,
-                    panX: 0,
-                    panY: 0,
-                },
-                {
-                    textureKey: "entering_bank",
-                    text: "Then you're security now! Get over here and help me fight these punks off!",
-                    textColor: '#ffffff',
-                    zoom: 1,
-                    panX: 0,
-                    panY: 0,
-                },
-                {
-                    textureKey: "entering_bank",
-                    text: "Wait what?!",
-                    textColor: '#ffffff',
-                    zoom: 1,
-                    panX: 0,
-                    panY: 0,
-                }
-            ],
-            PizzaShop: [
-                {
-                    textureKey: "outside_pizza",
-                    text: "Oh look, a 'Help Wanted' sign at the pizza shop! Surely making pizzas is safe...",
-                    textColor: '#ffffff',
-                    zoom: 1,
-                    panX: 0,
-                    panY: 0,
-                },
-                {
-                    textureKey: "entering_pizza",
-                    text: "Mamma mia! Thank goodness you're here! The lunch rush is out of control!",
-                    textColor: '#ffffff',
-                    zoom: 1,
-                    panX: 0,
-                    panY: 0,
-                },
-                {
-                    textureKey: "entering_pizza",
-                    text: "Uh, hi, I just saw the sign in the window—",
-                    textColor: '#ffffff',
-                    zoom: 1,
-                    panX: 0,
-                    panY: 0,
-                },
-                {
-                    textureKey: "entering_pizza",
-                    text: ("No time for interviews! Get behind the counter and start making " + 
-                        "those pies before this whole place burns down!\nWe got some hungry bambinos to feed!"),
-                    textColor: '#ffffff',
-                    zoom: 1,
-                    panX: 0,
-                    panY: 0,
-                }
-            ]
-        };
-
         const blockedDoors: Record<string, string | string[]> = {};
-        if (this.registry.get("bankCompleted")) {
+        if (bankCompleted) {
             blockedDoors.Battle_in_Bank = "You already beat the bank!";
         }
-        if (this.registry.get("pizzaCompleted")) {
+        if (pizzaCompleted) {
             blockedDoors.PizzaShop = "You already finished your shift at the pizza shop!";
+        }
+        if (drivingCompleted) {
+            blockedDoors.Runner = "You already finished your delivery shift!";
         }
 
         this.doors = makeDoors({
@@ -168,7 +98,7 @@ export class City extends Scene {
             tilemap: tilemap,
             player: this.player,
             layer: "Doors",
-            cutscenes: doorCutscenes,
+            cutscenes: CITY_DOOR_CUTSCENES,
             blockedDoors: blockedDoors
         });
 

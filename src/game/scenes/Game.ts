@@ -19,13 +19,6 @@ export class Game extends Scene
         super('Game');
     }
 
-    preload() 
-    {
-        // Load tilemap (room layout) and tileset (building blocks)
-        this.load.image('tiles', '/scene_tilemaps/Cottage_Tileset/Cottage_Tileset.png');
-        this.load.tilemapTiledJSON('tiles_map', '/assets/test.json');
-    }
-
     init(data: {spawnAt: {x: number, y: number}}) {
         this.spawnAt = data.spawnAt;
     }

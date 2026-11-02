@@ -45,20 +45,6 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
         super("Battle_in_Bank");
     }
 
-    preload() {
-        this.load.image("floors", "/scene_tilemaps/Bank_Isometric_Tileset/Floors.png");
-        this.load.image("walls", "/scene_tilemaps/Bank_Isometric_Tileset/Walls.png");
-        this.load.tilemapTiledJSON("bank_battle_map", "/assets/bank_level.json");
-        this.load.spritesheet("robber_stationary", "/assets/robber spritesheet.png", {
-            frameWidth: 32,
-            frameHeight: 32
-        });
-        this.load.spritesheet("security_guard_stationary", "/assets/security guard sprites.png", {
-            frameWidth: 32,
-            frameHeight: 32
-        });
-    }
-
     create() {
         this.camera = this.cameras.main;
         this.camera.roundPixels = true;

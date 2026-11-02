@@ -13,14 +13,6 @@ type Ingredient = {
     tray: { x: number; y: number; width: number; height: number };
 };
 
-const ORDER_SPRITES = [
-    "cheese_pizza",
-    "tomato_cheese_pizza",
-    "cheese_pepperoni_pizza",
-    "tomato_pepperoni_pizza",
-    "tomato_cheese_pepperoni_pizza"
-];
-
 // Cream paper inside the hanging board on pizza_background.png (1536x1024).
 const ORDER_BOARD = { x: 600, y: 158, width: 270, height: 210 };
 
@@ -82,17 +74,6 @@ export class PizzaShop extends Scene {
 
     constructor() {
         super("PizzaShop");
-    }
-
-    preload() {
-        this.load.image("pizza_background", "/assets/pizza_shop/pizza_background.png");
-        this.load.image("dough_layer", "/assets/pizza_shop/ingredients/dough_layer.png");
-        this.load.image("tomato_sauce_layer", "/assets/pizza_shop/ingredients/tomato_sauce_layer_clean.png");
-        this.load.image("cheese_layer", "/assets/pizza_shop/ingredients/cheese_layer_clean.png");
-        this.load.image("pepperoni_layer", "/assets/pizza_shop/ingredients/pepperoni_layer.png");
-        ORDER_SPRITES.forEach((key) => {
-            this.load.image(key, `/assets/pizza_shop/pizza_orders/${key}.png`);
-        });
     }
 
     create() {

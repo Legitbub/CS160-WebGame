@@ -81,17 +81,8 @@ export class MainMenu extends Scene
         }
     
         this.updateMenuHighlight();
-        this.preloadIntro();
 
         EventBus.emit('current-scene-ready', this);
-    }
-
-    // The intro art is large, so download it while the title is already on screen.
-    private preloadIntro() {
-        if (this.textures.exists('intro_slide')) return;
-        this.load.image('intro_slide', 'assets/cutscene_slides/intro slide.jpg');
-        this.load.image("intro_slide_2", "assets/cutscene_slides/intro slide 2.jpg");
-        this.load.start();
     }
     
     // This will activate once the user starts selecting a button

@@ -40,19 +40,30 @@ export interface UnitSpawnConfig {
     speed: number;
     isPlayer: boolean;
     textureKey: string;
+    hasGunAttack?: boolean;
+    shootingTextureKey?: string;
 }
 
 export const INITIAL_BANK_UNITS: UnitSpawnConfig[] = [
-    { name: "Hero", x: 6, y: 5, speed: 12, isPlayer: true, textureKey: "player_stationary" },
-    { name: "Bank Guard", x: 9, y: 5, speed: 11, isPlayer: false, textureKey: "robber_stationary" },
+    { name: "You", x: 6, y: 5, speed: 12, isPlayer: true, textureKey: "player_stationary" },
+    { name: "Bandit", x: 9, y: 5, speed: 11, isPlayer: false, textureKey: "robber_stationary" },
     { name: "Security Guard", x: 6, y: 8, speed: 10, isPlayer: true, textureKey: "security_guard_stationary" },
-    { name: "Chief Teller", x: 9, y: 8, speed: 9, isPlayer: false, textureKey: "robber_stationary" }
+    {
+        name: "Bandit Captain",
+        x: 9,
+        y: 8,
+        speed: 9,
+        isPlayer: false,
+        textureKey: "robber_stationary",
+        hasGunAttack: true,
+        shootingTextureKey: "robber_shooting"
+    }
 ];
 
 export function createInitialInventory(): ItemDefinition[] {
     return [
-        { name: "Potion", description: "Restores 40 HP to a unit", count: 3, effect: 'heal', amount: 40 },
-        { name: "Hi-Potion", description: "Restores 80 HP to a unit", count: 1, effect: 'heal', amount: 80 },
+        { name: "Lollipop", description: "Restores 40 HP to a unit", count: 3, effect: 'heal', amount: 40 },
+        { name: "5 Hour Energy", description: "Restores 80 HP to a unit", count: 1, effect: 'heal', amount: 80 },
         { name: "Coin Toss", description: "Deals 25 DMG to a target", count: 3, effect: 'damage', amount: 25 }
     ];
 }
@@ -372,7 +383,7 @@ export class BankBattleLogic {
         this.highlightedSquares = [];
         this.view.updateHighlights();
 
-        const damage = attacker.isPlayer ? 35 : 25;
+        const damage = attacker.isPlayer ? 95 : 25;
 
         this.view.animateAttack(
             attacker,
@@ -380,8 +391,9 @@ export class BankBattleLogic {
             targetSquare,
             () => {
                 this.applyDamageOrHeal(defender, -damage);
+                const verb = attacker.hasGunAttack ? "shot" : "hit";
                 this.view.setInfoText(
-                    `${attacker.name} hit ${defender.name} for ${damage} DMG! (${defender.name} HP: ${defender.hp}/${defender.maxHp})`
+                    `${attacker.name} ${verb} ${defender.name} for ${damage} DMG! (${defender.name} HP: ${defender.hp}/${defender.maxHp})`
                 );
             },
             () => {
@@ -562,21 +574,30 @@ export class BankBattleLogic {
 
             const performAttackAndFinish = () => {
                 if (this.state === 'GAME_OVER') return;
-                this.view.updateHighlights();
 
                 const attackSquares = getAttackableCells(aiUnit, this.grid);
                 const targetSquare = attackSquares.find(
                     sq => sq.occupiedBy && sq.occupiedBy.isPlayer && sq.occupiedBy.hp > 0
                 );
                 if (targetSquare && targetSquare.occupiedBy) {
-                    this.executeFight(aiUnit, targetSquare, () => {
-                        this.view.delay(600, () => {
-                            if (this.state !== 'GAME_OVER') {
-                                this.endTurn();
-                            }
+                    this.highlightedSquares = attackSquares;
+                    this.view.updateHighlights();
+                    if (aiUnit.hasGunAttack) {
+                        this.view.setInfoText(`${aiUnit.name} takes aim at ${targetSquare.occupiedBy.name}!`);
+                    }
+
+                    this.view.delay(aiUnit.hasGunAttack ? 300 : 0, () => {
+                        if (this.state === 'GAME_OVER') return;
+                        this.executeFight(aiUnit, targetSquare, () => {
+                            this.view.delay(600, () => {
+                                if (this.state !== 'GAME_OVER') {
+                                    this.endTurn();
+                                }
+                            });
                         });
                     });
                 } else {
+                    this.view.updateHighlights();
                     this.view.setInfoText(`${aiUnit.name} ends their turn.`);
                     this.view.delay(500, () => {
                         if (this.state !== 'GAME_OVER') {
@@ -586,14 +607,29 @@ export class BankBattleLogic {
                 }
             };
 
-            // Move closer if not already adjacent
+            const currentAttackSquares = getAttackableCells(aiUnit, this.grid);
+            const canAttackFromCurrentPos = currentAttackSquares.some(
+                sq => sq.occupiedBy && sq.occupiedBy.isPlayer && sq.occupiedBy.hp > 0
+            );
+
+            // Move closer if no player is currently in attack range
             const reachable = getReachableCells(aiUnit, this.grid);
-            if (bestDist > aiUnit.attackRange && reachable.length > 0) {
+            if (!canAttackFromCurrentPos && reachable.length > 0) {
                 let bestSquare = reachable[0];
+                let bestCanAttack = false;
                 let minAfterMove = Infinity;
+
                 for (const sq of reachable) {
+                    const canAttackFromSq = getAttackableCells(aiUnit, this.grid, sq.x, sq.y).some(
+                        targetSq => targetSq.occupiedBy && targetSq.occupiedBy.isPlayer && targetSq.occupiedBy.hp > 0
+                    );
                     const d = Math.abs(sq.x - closestPlayer.gridX) + Math.abs(sq.y - closestPlayer.gridY);
-                    if (d < minAfterMove) {
+
+                    if (canAttackFromSq && !bestCanAttack) {
+                        bestCanAttack = true;
+                        minAfterMove = d;
+                        bestSquare = sq;
+                    } else if (canAttackFromSq === bestCanAttack && d < minAfterMove) {
                         minAfterMove = d;
                         bestSquare = sq;
                     }

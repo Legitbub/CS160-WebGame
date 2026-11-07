@@ -81,6 +81,10 @@ export class Preloader extends Scene
             frameWidth: 32,
             frameHeight: 32
         });
+        this.load.spritesheet("robber_shooting", "/assets/robber shooting.png", {
+            frameWidth: 32,
+            frameHeight: 32
+        });
         this.load.spritesheet("security_guard_stationary", "/assets/security guard sprites.png", {
             frameWidth: 32,
             frameHeight: 32

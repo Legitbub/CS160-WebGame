@@ -74,7 +74,17 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
         // Initialize battle grid and spawn initial units
         const grid = new BattleGrid(tilemap.width, tilemap.height);
         const units = INITIAL_BANK_UNITS.map(cfg => {
-            const unit = new Kombatant(this, cfg.name, cfg.x, cfg.y, cfg.speed, cfg.isPlayer, cfg.textureKey);
+            const unit = new Kombatant(
+                this,
+                cfg.name,
+                cfg.x,
+                cfg.y,
+                cfg.speed,
+                cfg.isPlayer,
+                cfg.textureKey,
+                cfg.hasGunAttack,
+                cfg.shootingTextureKey
+            );
             unit.setDirection(cfg.isPlayer ? 'right' : 'left');
             grid.squares[cfg.x][cfg.y].occupiedBy = unit;
             return unit;
@@ -176,6 +186,49 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
 
         const origScreen = gridToScreen(attacker.gridX, attacker.gridY);
         const defScreen = gridToScreen(defender.gridX, defender.gridY);
+
+        if (attacker.hasGunAttack) {
+            attacker.setShooting(true);
+
+            const bullet = this.add.circle(origScreen.x, origScreen.y - 10, 2.5, 0xffe066)
+                .setStrokeStyle(1, 0xff6b00)
+                .setDepth(1000);
+
+            this.tweens.add({
+                targets: bullet,
+                x: defScreen.x,
+                y: defScreen.y - 10,
+                duration: 180,
+                onComplete: () => {
+                    bullet.destroy();
+                    onHit();
+                }
+            });
+
+            // Subtle recoil while holding the directional shooting sprite
+            const dirNorm = Math.hypot(defScreen.x - origScreen.x, defScreen.y - origScreen.y) || 1;
+            const recoilX = origScreen.x - ((defScreen.x - origScreen.x) / dirNorm) * 3;
+            const recoilY = origScreen.y - ((defScreen.y - origScreen.y) / dirNorm) * 3;
+
+            this.tweens.add({
+                targets: attacker.sprite,
+                x: recoilX,
+                y: recoilY,
+                duration: 90,
+                yoyo: true,
+                onUpdate: () => {
+                    attacker.syncOverheadUI();
+                },
+                onComplete: () => {
+                    this.time.delayedCall(260, () => {
+                        attacker.setShooting(false);
+                        onComplete();
+                    });
+                }
+            });
+            return;
+        }
+
         const lungeX = origScreen.x + (defScreen.x - origScreen.x) * 0.45;
         const lungeY = origScreen.y + (defScreen.y - origScreen.y) * 0.45;
 
@@ -463,14 +516,18 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
     }
 
     private updateSpriteDirection(unit: Kombatant, dx: number, dy: number) {
-        if (dx > 0) {
-            unit.setDirection('right');
-        } else if (dx < 0) {
-            unit.setDirection('left');
-        } else if (dy > 0) {
-            unit.setDirection('down');
-        } else if (dy < 0) {
-            unit.setDirection('up');
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            if (dx > 0) {
+                unit.setDirection('right');
+            } else if (dx < 0) {
+                unit.setDirection('left');
+            }
+        } else {
+            if (dy > 0) {
+                unit.setDirection('down');
+            } else if (dy < 0) {
+                unit.setDirection('up');
+            }
         }
     }
 
@@ -566,7 +623,7 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
 
         // Highlight reachable / attackable / item target squares
         let fillColor = 0x3498db;
-        if (this.battle.state === 'SELECTING_FIGHT_TARGET') {
+        if (this.battle.state === 'SELECTING_FIGHT_TARGET' || this.battle.state === 'AI_TURN') {
             fillColor = 0xe74c3c;
         } else if (this.battle.state === 'SELECTING_ITEM_TARGET') {
             fillColor = 0x2ecc71;

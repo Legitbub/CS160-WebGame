@@ -147,15 +147,60 @@ export function findPath(unit: Kombatant, target: BattleSquare, grid: BattleGrid
   return path;
 }
 
-export function getAttackableCells(unit: Kombatant, grid: BattleGrid): BattleSquare[] {
+export function getGunAttackCells(
+  unit: Kombatant,
+  grid: BattleGrid,
+  originX: number = unit.gridX,
+  originY: number = unit.gridY
+): BattleSquare[] {
+  const attackable: BattleSquare[] = [];
+  const maxRange = 3;
+
+  for (let dx = -maxRange; dx <= maxRange; dx++) {
+    for (let dy = -maxRange; dy <= maxRange; dy++) {
+      if (dx === 0 && dy === 0) continue;
+
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      // 3 squares in any of the 8 directions (cardinal + diagonal rays)
+      const inEightDirections =
+        (dx === 0 || dy === 0 || absDx === absDy) && Math.max(absDx, absDy) <= maxRange;
+
+      // Plus a 2x2 radius immediately adjacent to the character
+      const inAdjacentRadius = absDx <= 2 && absDy <= 2;
+
+      if (inEightDirections || inAdjacentRadius) {
+        const nx = originX + dx;
+        const ny = originY + dy;
+        if (grid.isValidSquare(nx, ny) && grid.squares[nx][ny].accessible) {
+          attackable.push(grid.squares[nx][ny]);
+        }
+      }
+    }
+  }
+
+  return attackable;
+}
+
+export function getAttackableCells(
+  unit: Kombatant,
+  grid: BattleGrid,
+  originX: number = unit.gridX,
+  originY: number = unit.gridY
+): BattleSquare[] {
+  if (unit.hasGunAttack) {
+    return getGunAttackCells(unit, grid, originX, originY);
+  }
+
   const attackable: BattleSquare[] = [];
   const range = unit.attackRange;
 
   for (let dx = -range; dx <= range; dx++) {
     for (let dy = -range; dy <= range; dy++) {
       if (Math.abs(dx) + Math.abs(dy) <= range && Math.abs(dx) + Math.abs(dy) > 0) {
-        const nx = unit.gridX + dx;
-        const ny = unit.gridY + dy;
+        const nx = originX + dx;
+        const ny = originY + dy;
         if (grid.isValidSquare(nx, ny) && grid.squares[nx][ny].accessible) {
           attackable.push(grid.squares[nx][ny]);
         }

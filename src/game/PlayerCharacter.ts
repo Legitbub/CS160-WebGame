@@ -1,5 +1,6 @@
 import * as Phaser from "phaser";
 import { CONSTANTS } from "./utilities/Constants";
+import { playWallBump } from "./utilities/SoundEffects";
 
 export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
     private arrows!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -36,6 +37,15 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
 
     public setFrozen(frozen: boolean) {
         this.isFrozen = frozen;
+        if (frozen && !this.isMoving) {
+            this.stopWalkingAnimation();
+        }
+    }
+
+    private stopWalkingAnimation() {
+        this.anims.stop();
+        const targetFrame = this.facingFrames[this.currentDirection];
+        this.setTexture("player_stationary", targetFrame);
     }
 
     public getFrozen(): boolean {
@@ -75,6 +85,8 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
 
         if (moveX !== 0 || moveY !== 0) {
             this.moveTile(moveX, moveY);
+        } else if (this.anims.isPlaying) {
+            this.stopWalkingAnimation();
         }
     }
 
@@ -89,21 +101,26 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
             if (nextTileX < 0 || nextTileX >= this.collisionLayer.tilemap.width ||
                 nextTileY < 0 || nextTileY >= this.collisionLayer.tilemap.height)
             {
+                playWallBump(this.scene);
                 return;
             }
             // Check if next tile is a directional wall
             const currentTile = this.collisionLayer.getTileAt(currentTileX, currentTileY)
             const targetTile = this.collisionLayer.getTileAt(nextTileX, nextTileY);
             if (moveX === 1 && targetTile?.properties?.blockLeft) {
+                playWallBump(this.scene);
                 return;
             } 
             if (moveX === -1 && currentTile?.properties?.blockLeft) {
+                playWallBump(this.scene);
                 return;
             } 
             if (moveY === 1 && currentTile?.properties?.blockDown) {
+                playWallBump(this.scene);
                 return;
             } 
             if (moveY === -1 && targetTile?.properties?.blockDown) {
+                playWallBump(this.scene);
                 return;
             }
 
@@ -113,6 +130,7 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
                     targetTile.properties?.blockUp || targetTile.properties?.blockDown;
 
                 if (!isDirectional) {
+                    playWallBump(this.scene);
                     return;
                 }
             }

@@ -10,6 +10,7 @@ import {
     INITIAL_BANK_UNITS,
     MenuOption
 } from "../bank_level/BankBattleLogic";
+import { playPewPew, playHitSound, playHealSound } from "../utilities/SoundEffects";
 
 export class Battle_in_Bank extends Scene implements BankBattleView {
     camera: Phaser.Cameras.Scene2D.Camera;
@@ -189,6 +190,7 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
 
         if (attacker.hasGunAttack) {
             attacker.setShooting(true);
+            playPewPew(this);
 
             const bullet = this.add.circle(origScreen.x, origScreen.y - 10, 2.5, 0xffe066)
                 .setStrokeStyle(1, 0xff6b00)
@@ -254,6 +256,12 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
     }
 
     showDamageOrHealEffect(target: Kombatant, delta: number, actualDelta: number) {
+        if (delta < 0) {
+            playHitSound(this);
+        } else if (delta > 0) {
+            playHealSound(this);
+        }
+
         // Hit flash & shake feedback when damaged
         if (delta < 0 && target.hp > 0) {
             target.sprite.setTint(0xffff66);

@@ -392,7 +392,19 @@ export class BankBattleLogic {
             defender,
             targetSquare,
             () => {
-                this.applyDamageOrHeal(defender, -damage);
+                if (
+                    attacker.hasGunAttack &&
+                    defender.name === "Security Guard" &&
+                    defender.hp <= damage &&
+                    !defender.hasUsedBulletproofVest
+                ) {
+                    defender.hasUsedBulletproofVest = true;
+                    bulletproofVestTriggered = true;
+                    const nonLethalDelta = Math.min(-1, -(defender.hp - 1));
+                    this.applyDamageOrHeal(defender, nonLethalDelta, 1);
+                } else {
+                    this.applyDamageOrHeal(defender, -damage);
+                }
                 const verb = attacker.hasGunAttack ? "shot" : "hit";
                 this.view.setInfoText(
                     `${attacker.name} ${verb} ${defender.name} for ${damage} DMG! (${defender.name} HP: ${defender.hp}/${defender.maxHp})`
@@ -507,7 +519,7 @@ export class BankBattleLogic {
             this.view.onVictory();
             this.view.hideMenu();
             this.view.setTurnBanner("VICTORY!");
-            this.view.setInfoText("All bank guards defeated! Press ENTER to return to City.");
+            this.view.setInfoText("All bank robbers defeated! Press ENTER to return to City.");
             return true;
         }
 

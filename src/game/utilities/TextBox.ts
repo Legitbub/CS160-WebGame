@@ -50,7 +50,7 @@ export function showTextBox({ scene, player, pages, onComplete }: TextBoxOptions
     let currentPage = 0;
 
     const textObj = scene.add.text(-boxScreenW / 2 + 24, -boxScreenH / 2 + 20, pageList[0], {
-        fontFamily: "Courier New, monospace",
+        fontFamily: '"Press Start 2P", "Courier New", monospace',
         fontSize: "20px",
         fontStyle: "bold",
         color: "#ffffff",

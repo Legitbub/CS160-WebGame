@@ -11,6 +11,7 @@ import {
     MenuOption
 } from "../bank_level/BankBattleLogic";
 import { playPewPew, playHitSound, playHealSound } from "../utilities/SoundEffects";
+import { showTextBox } from "../utilities/TextBox";
 
 export class Battle_in_Bank extends Scene implements BankBattleView {
     camera: Phaser.Cameras.Scene2D.Camera;
@@ -137,6 +138,14 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
 
     delay(ms: number, callback: () => void) {
         this.time.delayedCall(ms, callback);
+    }
+
+    showBattleTextBox(message: string, onComplete: () => void) {
+        showTextBox({
+            scene: this,
+            pages: message,
+            onComplete
+        });
     }
 
     onVictory() {

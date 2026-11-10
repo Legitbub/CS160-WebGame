@@ -23,6 +23,7 @@ export class Kombatant {
   isPlayer: boolean;
   hasMoved: boolean = false;
   hasActed: boolean = false;
+  hasUsedBulletproofVest: boolean = false;
   textureKey: string;
   shootingTextureKey?: string;
   currentDirection: FacingDirection = 'down';

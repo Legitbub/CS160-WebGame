@@ -88,6 +88,7 @@ export interface BankBattleView {
         onComplete: () => void
     ): void;
     showDamageOrHealEffect(target: Kombatant, delta: number, actualDelta: number): void;
+    showBattleTextBox?(message: string, onComplete: () => void): void;
     delay(ms: number, callback: () => void): void;
     onVictory(): void;
 }
@@ -122,7 +123,7 @@ export class BankBattleLogic {
     }
 
     arePlayersAlive(): boolean {
-        return this.units.some(u => u.isPlayer && u.hp > 0);
+        return this.units.some(u => u.isPlayer && u.hp > 0 && u.name === "You");
     }
 
     isInteractiveMenuState(): boolean {
@@ -383,7 +384,8 @@ export class BankBattleLogic {
         this.highlightedSquares = [];
         this.view.updateHighlights();
 
-        const damage = attacker.isPlayer ? 95 : 25;
+        const damage = attacker.hasGunAttack ? 80 : (attacker.isPlayer ? 95 : 25);
+        let bulletproofVestTriggered = false;
 
         this.view.animateAttack(
             attacker,
@@ -399,21 +401,33 @@ export class BankBattleLogic {
             () => {
                 attacker.setPosition(attacker.gridX, attacker.gridY);
                 attacker.hasActed = true;
-                this.isAnimatingMove = false;
 
-                if (this.checkBattleEnd()) {
-                    return;
-                }
+                const finishAttack = () => {
+                    this.isAnimatingMove = false;
 
-                if (onComplete) {
-                    onComplete();
-                } else if (attacker.isPlayer) {
-                    // Automatically finish the player's turn after attacking so the next unit (enemy) acts
-                    this.view.delay(550, () => {
-                        if (this.state !== 'GAME_OVER') {
-                            this.endTurn();
-                        }
-                    });
+                    if (this.checkBattleEnd()) {
+                        return;
+                    }
+
+                    if (onComplete) {
+                        onComplete();
+                    } else if (attacker.isPlayer) {
+                        // Automatically finish the player's turn after attacking so the next unit (enemy) acts
+                        this.view.delay(550, () => {
+                            if (this.state !== 'GAME_OVER') {
+                                this.endTurn();
+                            }
+                        });
+                    }
+                };
+
+                if (bulletproofVestTriggered && this.view.showBattleTextBox) {
+                    this.view.showBattleTextBox(
+                        "The bulletproof vest prevented an insta-kill!",
+                        finishAttack
+                    );
+                } else {
+                    finishAttack();
                 }
             }
         );
@@ -457,9 +471,9 @@ export class BankBattleLogic {
         });
     }
 
-    private applyDamageOrHeal(target: Kombatant, delta: number): number {
+    private applyDamageOrHeal(target: Kombatant, delta: number, minHp: number = 0): number {
         const prevHp = target.hp;
-        target.hp = Math.max(0, Math.min(target.maxHp, prevHp + delta));
+        target.hp = Math.max(minHp, Math.min(target.maxHp, prevHp + delta));
         const actualDelta = target.hp - prevHp;
 
         target.updateHpText();
@@ -477,8 +491,16 @@ export class BankBattleLogic {
     }
 
     checkBattleEnd(): boolean {
-        const playersAlive = this.units.some(u => u.isPlayer && u.hp > 0);
+        const playersAlive = this.arePlayersAlive();
         const enemiesAlive = this.units.some(u => !u.isPlayer && u.hp > 0);
+
+        if (!playersAlive) {
+            this.state = 'GAME_OVER';
+            this.view.hideMenu();
+            this.view.setTurnBanner("DEFEAT...");
+            this.view.setInfoText("You were defeated! Press ENTER to retry.");
+            return true;
+        }
 
         if (!enemiesAlive) {
             this.state = 'GAME_OVER';
@@ -486,14 +508,6 @@ export class BankBattleLogic {
             this.view.hideMenu();
             this.view.setTurnBanner("VICTORY!");
             this.view.setInfoText("All bank guards defeated! Press ENTER to return to City.");
-            return true;
-        }
-
-        if (!playersAlive) {
-            this.state = 'GAME_OVER';
-            this.view.hideMenu();
-            this.view.setTurnBanner("DEFEAT...");
-            this.view.setInfoText("Your party was defeated! Press ENTER to retry.");
             return true;
         }
 

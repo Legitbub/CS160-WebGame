@@ -21,35 +21,83 @@ function getAudioContext(scene: Phaser.Scene): AudioContext | null {
 let lastWallBumpTime = 0;
 
 /**
- * Cartoony "pew pew!" gunshot sound (two quick high-to-low frequency sweeps).
+ * Deep, heavy shotgun blast ("K-BOOM!"):
+ * Built from an explosive full-bodied noise blast (with a sweeping low-pass boom tail)
+ * layered over a deep low-end cannon punch—no high-to-low pitched oscillator squeaks.
  */
 export function playPewPew(scene: Phaser.Scene): void {
     const ctx = getAudioContext(scene);
     if (!ctx) return;
 
     const now = ctx.currentTime;
+    const blastDuration = 0.38;
 
-    // Two quick "pew" sweeps spaced 90ms apart
-    [0, 0.09].forEach((offset) => {
-        const start = now + offset;
-        const duration = 0.08;
+    // 1. Heavy, roaring shotgun noise blast (full-spectrum impact decaying into a deep room boom)
+    const bufferSize = Math.floor(ctx.sampleRate * blastDuration);
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
 
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+    let heldGrain = 0;
+    for (let i = 0; i < bufferSize; i++) {
+        const t = i / bufferSize;
+        // Blend full white noise with coarse 4-sample grains for a thick, crunchy 16-bit shotgun roar
+        if (i % 4 === 0) {
+            heldGrain = Math.random() * 2 - 1;
+        }
+        const white = Math.random() * 2 - 1;
+        const raw = 0.6 * heldGrain + 0.4 * white;
 
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(1100, start);
-        osc.frequency.exponentialRampToValueAtTime(180, start + duration);
+        // Hard-saturated initial blast wave followed by a heavy exponential tail
+        const env = t < 0.06 ? 1.0 : Math.pow(1 - (t - 0.06) / 0.94, 1.9);
+        output[i] = Math.tanh(raw * 2.2) * env;
+    }
 
-        gain.gain.setValueAtTime(0.25, start);
-        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
 
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+    // Low-pass starts wide open (3400Hz) for the initial shotgun crack, then drops into a deep 240Hz rumble
+    const lowpass = ctx.createBiquadFilter();
+    lowpass.type = "lowpass";
+    lowpass.frequency.setValueAtTime(3400, now);
+    lowpass.frequency.exponentialRampToValueAtTime(750, now + 0.09);
+    lowpass.frequency.exponentialRampToValueAtTime(240, now + blastDuration);
 
-        osc.start(start);
-        osc.stop(start + duration);
-    });
+    // Low-mid bass boost at 140Hz gives the shotgun blast heavy chest weight
+    const bassBoost = ctx.createBiquadFilter();
+    bassBoost.type = "peaking";
+    bassBoost.frequency.setValueAtTime(140, now);
+    bassBoost.Q.setValueAtTime(1.0, now);
+    bassBoost.gain.setValueAtTime(8, now);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.85, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + blastDuration);
+
+    noise.connect(bassBoost);
+    bassBoost.connect(lowpass);
+    lowpass.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    noise.start(now);
+    noise.stop(now + blastDuration);
+
+    // 2. Deep low-frequency cannon thump (starts at 150Hz -> 36Hz so there is zero high-pitched squeak)
+    const punchDur = 0.18;
+    const punchOsc = ctx.createOscillator();
+    const punchGain = ctx.createGain();
+
+    punchOsc.type = "triangle";
+    punchOsc.frequency.setValueAtTime(150, now);
+    punchOsc.frequency.exponentialRampToValueAtTime(36, now + punchDur);
+
+    punchGain.gain.setValueAtTime(0.9, now);
+    punchGain.gain.exponentialRampToValueAtTime(0.001, now + punchDur);
+
+    punchOsc.connect(punchGain);
+    punchGain.connect(ctx.destination);
+
+    punchOsc.start(now);
+    punchOsc.stop(now + punchDur);
 }
 
 /**
@@ -146,36 +194,47 @@ export function playHitSound(scene: Phaser.Scene): void {
 }
 
 /**
- * Bright ascending RPG chime for healing a unit.
+ * Smooth, uniform electronic Yu-Gi-Oh! Life Points counter sound:
+ * Every tick plays at the exact same constant high-guitar-string pitch (1385Hz)
+ * with a soft fade-in/fade-out envelope so it sounds completely steady and non-erratic.
  */
 export function playHealSound(scene: Phaser.Scene): void {
     const ctx = getAudioContext(scene);
     if (!ctx) return;
 
     const now = ctx.currentTime;
-    // Ascending C major / C6 arpeggio (C5 -> E5 -> G5 -> C6)
-    const notes = [523.25, 659.25, 783.99, 1046.5];
-    const stepTime = 0.065;
+    const tickCount = 15;
+    const tickInterval = 0.095; // 95ms spacing between ticks
+    const tickDuration = 0.062;
+    const constantFreq = 1385; // Every tick has the exact same pitch (F6)
 
-    notes.forEach((freq, idx) => {
-        const start = now + idx * stepTime;
-        const duration = 0.16;
+    for (let i = 0; i < tickCount; i++) {
+        const start = now + i * tickInterval;
 
         const osc = ctx.createOscillator();
+        const filter = ctx.createBiquadFilter();
         const gain = ctx.createGain();
 
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, start);
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(constantFreq, start);
 
-        gain.gain.setValueAtTime(0.22, start);
-        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(2400, start);
+        filter.Q.setValueAtTime(1.2, start);
 
-        osc.connect(gain);
+        // Smooth, non-percussive envelope: gentle 14ms fade-in and soft 22ms fade-out
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.linearRampToValueAtTime(0.2, start + 0.014);
+        gain.gain.setValueAtTime(0.2, start + tickDuration - 0.022);
+        gain.gain.linearRampToValueAtTime(0.0001, start + tickDuration);
+
+        osc.connect(filter);
+        filter.connect(gain);
         gain.connect(ctx.destination);
 
         osc.start(start);
-        osc.stop(start + duration);
-    });
+        osc.stop(start + tickDuration);
+    }
 }
 
 /**

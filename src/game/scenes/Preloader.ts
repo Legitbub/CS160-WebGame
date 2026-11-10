@@ -158,6 +158,6 @@ export class Preloader extends Scene
             repeat: -1
         });
 
-        this.scene.start('Runner');
+        this.scene.start('MainMenu');
     }
 }

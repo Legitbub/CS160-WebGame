@@ -36,6 +36,10 @@ export class Runner extends Scene {
     }
 
     create() {
+        this.currentLane = 1;
+        this.isChangingLane = false;
+        this.gameEnded = false;
+
         const map = this.make.tilemap({
             key: "runnerLevel"
         });
@@ -232,7 +236,7 @@ export class Runner extends Scene {
             this.scene.start("City", {
                 spawnAt: {
                     x: 3,
-                    y: 4
+                    y: 6
                 }
             });
         });

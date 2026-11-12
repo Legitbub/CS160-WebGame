@@ -147,6 +147,45 @@ export function findPath(unit: Kombatant, target: BattleSquare, grid: BattleGrid
   return path;
 }
 
+export function hasLineOfSight(
+  grid: BattleGrid,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number
+): boolean {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+  if (steps <= 1) {
+    return grid.isValidSquare(x1, y1) && grid.squares[x1][y1].accessible;
+  }
+
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const rx = x0 + dx * t;
+    const ry = y0 + dy * t;
+
+    // Sample slightly before and after the point to catch obstacles along
+    // half-integer grid crossings (e.g. a knight's-move ray like (+2, +1))
+    const eps = 1e-6;
+    const samples = [
+      { x: Math.round(rx - eps), y: Math.round(ry - eps) },
+      { x: Math.round(rx + eps), y: Math.round(ry + eps) }
+    ];
+
+    for (const s of samples) {
+      if ((s.x === x0 && s.y === y0) || (s.x === x1 && s.y === y1)) continue;
+      if (!grid.isValidSquare(s.x, s.y) || !grid.squares[s.x][s.y].accessible) {
+        return false;
+      }
+    }
+  }
+
+  return grid.isValidSquare(x1, y1) && grid.squares[x1][y1].accessible;
+}
+
 export function getGunAttackCells(
   unit: Kombatant,
   grid: BattleGrid,
@@ -173,7 +212,11 @@ export function getGunAttackCells(
       if (inEightDirections || inAdjacentRadius) {
         const nx = originX + dx;
         const ny = originY + dy;
-        if (grid.isValidSquare(nx, ny) && grid.squares[nx][ny].accessible) {
+        if (
+          grid.isValidSquare(nx, ny) &&
+          grid.squares[nx][ny].accessible &&
+          hasLineOfSight(grid, originX, originY, nx, ny)
+        ) {
           attackable.push(grid.squares[nx][ny]);
         }
       }
@@ -201,7 +244,11 @@ export function getAttackableCells(
       if (Math.abs(dx) + Math.abs(dy) <= range && Math.abs(dx) + Math.abs(dy) > 0) {
         const nx = originX + dx;
         const ny = originY + dy;
-        if (grid.isValidSquare(nx, ny) && grid.squares[nx][ny].accessible) {
+        if (
+          grid.isValidSquare(nx, ny) &&
+          grid.squares[nx][ny].accessible &&
+          hasLineOfSight(grid, originX, originY, nx, ny)
+        ) {
           attackable.push(grid.squares[nx][ny]);
         }
       }

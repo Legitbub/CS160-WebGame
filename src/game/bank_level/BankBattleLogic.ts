@@ -38,6 +38,7 @@ export interface UnitSpawnConfig {
     x: number;
     y: number;
     speed: number;
+    moveRange: number;
     isPlayer: boolean;
     textureKey: string;
     hasGunAttack?: boolean;
@@ -45,14 +46,15 @@ export interface UnitSpawnConfig {
 }
 
 export const INITIAL_BANK_UNITS: UnitSpawnConfig[] = [
-    { name: "You", x: 6, y: 5, speed: 12, isPlayer: true, textureKey: "player_stationary" },
-    { name: "Bandit", x: 9, y: 5, speed: 11, isPlayer: false, textureKey: "robber_stationary" },
-    { name: "Security Guard", x: 6, y: 8, speed: 10, isPlayer: true, textureKey: "security_guard_stationary" },
+    { name: "You", x: 2, y: 11, speed: 12, moveRange: 6, isPlayer: true, textureKey: "player_stationary" },
+    { name: "Bandit", x: 16, y: 2, speed: 11, moveRange: 4, isPlayer: false, textureKey: "robber_stationary" },
+    { name: "Security Guard", x: 3, y: 13, speed: 10, moveRange: 5, isPlayer: true, textureKey: "security_guard_stationary" },
     {
         name: "Bandit Captain",
-        x: 9,
-        y: 8,
+        x: 18,
+        y: 3,
         speed: 9,
+        moveRange: 3,
         isPlayer: false,
         textureKey: "robber_stationary",
         hasGunAttack: true,
@@ -587,11 +589,42 @@ export class BankBattleLogic {
                 return;
             }
 
-            // Find closest player unit by Manhattan distance
+            // Helper to compute shortest path distance around obstacles (falls back to Manhattan if unreachable)
+            const getPathDistance = (fromX: number, fromY: number, toX: number, toY: number): number => {
+                if (fromX === toX && fromY === toY) return 0;
+                const visited = new Set<string>([`${fromX},${fromY}`]);
+                const queue: { x: number; y: number; dist: number }[] = [{ x: fromX, y: fromY, dist: 0 }];
+                const dirs = [
+                    { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
+                    { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
+                ];
+                while (queue.length > 0) {
+                    const curr = queue.shift()!;
+                    for (const d of dirs) {
+                        const nx = curr.x + d.dx;
+                        const ny = curr.y + d.dy;
+                        if (nx === toX && ny === toY) {
+                            return curr.dist + 1;
+                        }
+                        const key = `${nx},${ny}`;
+                        if (!visited.has(key) && this.grid.isValidSquare(nx, ny)) {
+                            const sq = this.grid.squares[nx][ny];
+                            const canPass = sq.accessible && (!sq.occupiedBy || sq.occupiedBy.isPlayer === aiUnit.isPlayer);
+                            if (canPass) {
+                                visited.add(key);
+                                queue.push({ x: nx, y: ny, dist: curr.dist + 1 });
+                            }
+                        }
+                    }
+                }
+                return Math.abs(fromX - toX) + Math.abs(fromY - toY) + 100;
+            };
+
+            // Find closest player unit by path distance around obstacles
             let closestPlayer = playerTargets[0];
-            let bestDist = Math.abs(aiUnit.gridX - closestPlayer.gridX) + Math.abs(aiUnit.gridY - closestPlayer.gridY);
+            let bestDist = getPathDistance(aiUnit.gridX, aiUnit.gridY, closestPlayer.gridX, closestPlayer.gridY);
             for (const p of playerTargets) {
-                const d = Math.abs(aiUnit.gridX - p.gridX) + Math.abs(aiUnit.gridY - p.gridY);
+                const d = getPathDistance(aiUnit.gridX, aiUnit.gridY, p.gridX, p.gridY);
                 if (d < bestDist) {
                     bestDist = d;
                     closestPlayer = p;
@@ -649,7 +682,7 @@ export class BankBattleLogic {
                     const canAttackFromSq = getAttackableCells(aiUnit, this.grid, sq.x, sq.y).some(
                         targetSq => targetSq.occupiedBy && targetSq.occupiedBy.isPlayer && targetSq.occupiedBy.hp > 0
                     );
-                    const d = Math.abs(sq.x - closestPlayer.gridX) + Math.abs(sq.y - closestPlayer.gridY);
+                    const d = getPathDistance(sq.x, sq.y, closestPlayer.gridX, closestPlayer.gridY);
 
                     if (canAttackFromSq && !bestCanAttack) {
                         bestCanAttack = true;

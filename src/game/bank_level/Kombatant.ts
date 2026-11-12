@@ -13,7 +13,7 @@ export class Kombatant {
   name: string;
   gridX: number;
   gridY: number;
-  moveRange: number = 4;
+  moveRange: number;
   attackRange: number = 1;
   hasGunAttack: boolean = false;
   hp: number = 100;
@@ -40,6 +40,7 @@ export class Kombatant {
     x: number,
     y: number,
     speed: number,
+    moveRange: number,
     isPlayer: boolean,
     textureKey: string = 'player_stationary',
     hasGunAttack?: boolean,
@@ -49,6 +50,7 @@ export class Kombatant {
     this.gridX = x;
     this.gridY = y;
     this.speed = speed;
+    this.moveRange = moveRange,
     this.isPlayer = isPlayer;
     this.textureKey = textureKey;
     this.hasGunAttack = hasGunAttack ?? (name === 'Bandit Captain');

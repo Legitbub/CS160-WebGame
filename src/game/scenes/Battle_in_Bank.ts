@@ -58,7 +58,9 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
         this.camera.centerOn(mapConverted.x, mapConverted.y);
 
         const tileset1 = tilemap.addTilesetImage("Iso Floors", "floors")!;
+        const tileset2 = tilemap.addTilesetImage("Iso Walls", "walls")!;
         const floorLayer = tilemap.createLayer("Tile Layer 1", tileset1);
+        const wallsLayer = tilemap.createLayer("Walls", [tileset1, tileset2]);
 
         // Floors.png contains 32x32 sprites where the 32x16 isometric top diamond
         // has its top vertex at (x=16, y=4) and bank_level.json sets tileoffset.y = 11.
@@ -69,12 +71,31 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
             floorLayer.setDepth(0);
         }
 
+        const blockedSpots: [number, number][] = [];
+        if (wallsLayer) {
+            // Iso Walls tiles are 32x64 (32px taller than the 32x32 Iso Floors tiles)
+            // and do not have the +11px tileoffset that Iso Floors has in bank_level.json.
+            // Shifting y by (7 - 32 - 11 = -36) anchors the bottom of the 64px wall/column
+            // sprites to the exact same isometric diamond surface as the floor tiles.
+            wallsLayer.setPosition(-TILE_WIDTH / 2, -36);
+            wallsLayer.setDepth(4);
+
+            for (let x = 0; x < tilemap.width; x++) {
+                for (let y = 0; y < tilemap.height; y++) {
+                    const tile = wallsLayer.getTileAt(x, y);
+                    if (tile && tile.index > 0) {
+                        blockedSpots.push([x, y]);
+                    }
+                }
+            }
+        }
+
         // Graphics layers for isometric tile highlights and hover cursor
         this.highlightGraphics = this.add.graphics().setDepth(2);
         this.cursorGraphics = this.add.graphics().setDepth(3);
 
         // Initialize battle grid and spawn initial units
-        const grid = new BattleGrid(tilemap.width, tilemap.height);
+        const grid = new BattleGrid(tilemap.width, tilemap.height, blockedSpots);
         const units = INITIAL_BANK_UNITS.map(cfg => {
             const unit = new Kombatant(
                 this,
@@ -82,6 +103,7 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
                 cfg.x,
                 cfg.y,
                 cfg.speed,
+                cfg.moveRange,
                 cfg.isPlayer,
                 cfg.textureKey,
                 cfg.hasGunAttack,

@@ -3,6 +3,7 @@ export { Battle_in_Bank } from "./Battle_in_Bank";
 export { Boot } from "./Boot";
 export { City } from "./City";
 export { PizzaShop } from "./PizzaShop";
+export { PizzaOven } from "./PizzaOven";
 export { Game } from "./Game";
 export { GameOver } from "./GameOver";
 export { Preloader } from "./Preloader";

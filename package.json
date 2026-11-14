@@ -28,15 +28,20 @@
     "build-nolog": "next build"
   },
   "dependencies": {
-    "next": "15.3.1",
+    "eslint-config-next": "16.4.5",
+    "next": "16.4.5",
     "phaser": "4.0.0",
-    "react": "19.0.0",
-    "react-dom": "19.0.0"
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
   }
 }

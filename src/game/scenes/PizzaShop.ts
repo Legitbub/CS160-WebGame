@@ -1,5 +1,6 @@
 import { EventBus } from "../EventBus";
 import { Scene } from "phaser";
+import { playPizzaSuccess, playPizzaFailure } from "../utilities/SoundEffects";
 
 type PizzaRecipe = {
     name: string;
@@ -287,6 +288,7 @@ export class PizzaShop extends Scene {
         this.advancing = true;
         this.orderTimer?.remove(false);
         this.orderTimer = undefined;
+        playPizzaSuccess(this);
         this.statusText.setText("Order complete");
         this.clearBoard(() => {
             this.pizzasMade += 1;
@@ -375,6 +377,9 @@ export class PizzaShop extends Scene {
         if (matches) {
             this.completeOrder();
             return;
+        }
+        if (fromBoard) {
+            playPizzaFailure(this);
         }
         this.statusText.setText(fromBoard ? "Not the order yet" : "");
     }

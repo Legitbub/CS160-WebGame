@@ -10,6 +10,8 @@ import {
     INITIAL_BANK_UNITS,
     MenuOption
 } from "../bank_level/BankBattleLogic";
+import { playPewPew, playHitSound, playHealSound } from "../utilities/SoundEffects";
+import { showTextBox } from "../utilities/TextBox";
 
 export class Battle_in_Bank extends Scene implements BankBattleView {
     camera: Phaser.Cameras.Scene2D.Camera;
@@ -56,7 +58,9 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
         this.camera.centerOn(mapConverted.x, mapConverted.y);
 
         const tileset1 = tilemap.addTilesetImage("Iso Floors", "floors")!;
+        const tileset2 = tilemap.addTilesetImage("Iso Walls", "walls")!;
         const floorLayer = tilemap.createLayer("Tile Layer 1", tileset1);
+        const wallsLayer = tilemap.createLayer("Walls", [tileset1, tileset2]);
 
         // Floors.png contains 32x32 sprites where the 32x16 isometric top diamond
         // has its top vertex at (x=16, y=4) and bank_level.json sets tileoffset.y = 11.
@@ -67,14 +71,44 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
             floorLayer.setDepth(0);
         }
 
+        const blockedSpots: [number, number][] = [];
+        if (wallsLayer) {
+            // Iso Walls tiles are 32x64 (32px taller than the 32x32 Iso Floors tiles)
+            // and do not have the +11px tileoffset that Iso Floors has in bank_level.json.
+            // Shifting y by (7 - 32 - 11 = -36) anchors the bottom of the 64px wall/column
+            // sprites to the exact same isometric diamond surface as the floor tiles.
+            wallsLayer.setPosition(-TILE_WIDTH / 2, -36);
+            wallsLayer.setDepth(4);
+
+            for (let x = 0; x < tilemap.width; x++) {
+                for (let y = 0; y < tilemap.height; y++) {
+                    const tile = wallsLayer.getTileAt(x, y);
+                    if (tile && tile.index > 0) {
+                        blockedSpots.push([x, y]);
+                    }
+                }
+            }
+        }
+
         // Graphics layers for isometric tile highlights and hover cursor
         this.highlightGraphics = this.add.graphics().setDepth(2);
         this.cursorGraphics = this.add.graphics().setDepth(3);
 
         // Initialize battle grid and spawn initial units
-        const grid = new BattleGrid(tilemap.width, tilemap.height);
+        const grid = new BattleGrid(tilemap.width, tilemap.height, blockedSpots);
         const units = INITIAL_BANK_UNITS.map(cfg => {
-            const unit = new Kombatant(this, cfg.name, cfg.x, cfg.y, cfg.speed, cfg.isPlayer, cfg.textureKey);
+            const unit = new Kombatant(
+                this,
+                cfg.name,
+                cfg.x,
+                cfg.y,
+                cfg.speed,
+                cfg.moveRange,
+                cfg.isPlayer,
+                cfg.textureKey,
+                cfg.hasGunAttack,
+                cfg.shootingTextureKey
+            );
             unit.setDirection(cfg.isPlayer ? 'right' : 'left');
             grid.squares[cfg.x][cfg.y].occupiedBy = unit;
             return unit;
@@ -128,6 +162,14 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
         this.time.delayedCall(ms, callback);
     }
 
+    showBattleTextBox(message: string, onComplete: () => void) {
+        showTextBox({
+            scene: this,
+            pages: message,
+            onComplete
+        });
+    }
+
     onVictory() {
         this.registry.set("bankCompleted", true);
     }
@@ -176,6 +218,50 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
 
         const origScreen = gridToScreen(attacker.gridX, attacker.gridY);
         const defScreen = gridToScreen(defender.gridX, defender.gridY);
+
+        if (attacker.hasGunAttack) {
+            attacker.setShooting(true);
+            playPewPew(this);
+
+            const bullet = this.add.circle(origScreen.x, origScreen.y - 10, 2.5, 0xffe066)
+                .setStrokeStyle(1, 0xff6b00)
+                .setDepth(1000);
+
+            this.tweens.add({
+                targets: bullet,
+                x: defScreen.x,
+                y: defScreen.y - 10,
+                duration: 180,
+                onComplete: () => {
+                    bullet.destroy();
+                    onHit();
+                }
+            });
+
+            // Subtle recoil while holding the directional shooting sprite
+            const dirNorm = Math.hypot(defScreen.x - origScreen.x, defScreen.y - origScreen.y) || 1;
+            const recoilX = origScreen.x - ((defScreen.x - origScreen.x) / dirNorm) * 3;
+            const recoilY = origScreen.y - ((defScreen.y - origScreen.y) / dirNorm) * 3;
+
+            this.tweens.add({
+                targets: attacker.sprite,
+                x: recoilX,
+                y: recoilY,
+                duration: 90,
+                yoyo: true,
+                onUpdate: () => {
+                    attacker.syncOverheadUI();
+                },
+                onComplete: () => {
+                    this.time.delayedCall(260, () => {
+                        attacker.setShooting(false);
+                        onComplete();
+                    });
+                }
+            });
+            return;
+        }
+
         const lungeX = origScreen.x + (defScreen.x - origScreen.x) * 0.45;
         const lungeY = origScreen.y + (defScreen.y - origScreen.y) * 0.45;
 
@@ -201,6 +287,12 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
     }
 
     showDamageOrHealEffect(target: Kombatant, delta: number, actualDelta: number) {
+        if (delta < 0) {
+            playHitSound(this);
+        } else if (delta > 0) {
+            playHealSound(this);
+        }
+
         // Hit flash & shake feedback when damaged
         if (delta < 0 && target.hp > 0) {
             target.sprite.setTint(0xffff66);
@@ -463,14 +555,18 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
     }
 
     private updateSpriteDirection(unit: Kombatant, dx: number, dy: number) {
-        if (dx > 0) {
-            unit.setDirection('right');
-        } else if (dx < 0) {
-            unit.setDirection('left');
-        } else if (dy > 0) {
-            unit.setDirection('down');
-        } else if (dy < 0) {
-            unit.setDirection('up');
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            if (dx > 0) {
+                unit.setDirection('right');
+            } else if (dx < 0) {
+                unit.setDirection('left');
+            }
+        } else {
+            if (dy > 0) {
+                unit.setDirection('down');
+            } else if (dy < 0) {
+                unit.setDirection('up');
+            }
         }
     }
 
@@ -566,7 +662,7 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
 
         // Highlight reachable / attackable / item target squares
         let fillColor = 0x3498db;
-        if (this.battle.state === 'SELECTING_FIGHT_TARGET') {
+        if (this.battle.state === 'SELECTING_FIGHT_TARGET' || this.battle.state === 'AI_TURN') {
             fillColor = 0xe74c3c;
         } else if (this.battle.state === 'SELECTING_ITEM_TARGET') {
             fillColor = 0x2ecc71;

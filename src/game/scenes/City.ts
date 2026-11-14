@@ -8,7 +8,6 @@ import { CITY_DOOR_CUTSCENES, ENDING_CUTSCENE } from "../utilities/SlideDeck";
 
 export class City extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
-    gameText: Phaser.GameObjects.Text;
     private player!: PlayerCharacter;
     private objectLayer!: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
     private spawnAt?: {x: number, y: number};

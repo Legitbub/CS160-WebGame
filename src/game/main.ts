@@ -30,7 +30,8 @@ const config: Phaser.Types.Core.GameConfig = {
         Scenes.PizzaShop,
         Scenes.PizzaOven,
         Scenes.Battle_in_Bank,
-        Scenes.GameOver
+        Scenes.GameOver,
+        Scenes.Runner
     ]
 };
 

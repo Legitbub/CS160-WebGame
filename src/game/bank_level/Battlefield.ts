@@ -147,16 +147,108 @@ export function findPath(unit: Kombatant, target: BattleSquare, grid: BattleGrid
   return path;
 }
 
-export function getAttackableCells(unit: Kombatant, grid: BattleGrid): BattleSquare[] {
+export function hasLineOfSight(
+  grid: BattleGrid,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number
+): boolean {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+  if (steps <= 1) {
+    return grid.isValidSquare(x1, y1) && grid.squares[x1][y1].accessible;
+  }
+
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const rx = x0 + dx * t;
+    const ry = y0 + dy * t;
+
+    // Sample slightly before and after the point to catch obstacles along
+    // half-integer grid crossings (e.g. a knight's-move ray like (+2, +1))
+    const eps = 1e-6;
+    const samples = [
+      { x: Math.round(rx - eps), y: Math.round(ry - eps) },
+      { x: Math.round(rx + eps), y: Math.round(ry + eps) }
+    ];
+
+    for (const s of samples) {
+      if ((s.x === x0 && s.y === y0) || (s.x === x1 && s.y === y1)) continue;
+      if (!grid.isValidSquare(s.x, s.y) || !grid.squares[s.x][s.y].accessible) {
+        return false;
+      }
+    }
+  }
+
+  return grid.isValidSquare(x1, y1) && grid.squares[x1][y1].accessible;
+}
+
+export function getGunAttackCells(
+  unit: Kombatant,
+  grid: BattleGrid,
+  originX: number = unit.gridX,
+  originY: number = unit.gridY
+): BattleSquare[] {
+  const attackable: BattleSquare[] = [];
+  const maxRange = 3;
+
+  for (let dx = -maxRange; dx <= maxRange; dx++) {
+    for (let dy = -maxRange; dy <= maxRange; dy++) {
+      if (dx === 0 && dy === 0) continue;
+
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      // 3 squares in any of the 8 directions (cardinal + diagonal rays)
+      const inEightDirections =
+        (dx === 0 || dy === 0 || absDx === absDy) && Math.max(absDx, absDy) <= maxRange;
+
+      // Plus a 2x2 radius immediately adjacent to the character
+      const inAdjacentRadius = absDx <= 2 && absDy <= 2;
+
+      if (inEightDirections || inAdjacentRadius) {
+        const nx = originX + dx;
+        const ny = originY + dy;
+        if (
+          grid.isValidSquare(nx, ny) &&
+          grid.squares[nx][ny].accessible &&
+          hasLineOfSight(grid, originX, originY, nx, ny)
+        ) {
+          attackable.push(grid.squares[nx][ny]);
+        }
+      }
+    }
+  }
+
+  return attackable;
+}
+
+export function getAttackableCells(
+  unit: Kombatant,
+  grid: BattleGrid,
+  originX: number = unit.gridX,
+  originY: number = unit.gridY
+): BattleSquare[] {
+  if (unit.hasGunAttack) {
+    return getGunAttackCells(unit, grid, originX, originY);
+  }
+
   const attackable: BattleSquare[] = [];
   const range = unit.attackRange;
 
   for (let dx = -range; dx <= range; dx++) {
     for (let dy = -range; dy <= range; dy++) {
       if (Math.abs(dx) + Math.abs(dy) <= range && Math.abs(dx) + Math.abs(dy) > 0) {
-        const nx = unit.gridX + dx;
-        const ny = unit.gridY + dy;
-        if (grid.isValidSquare(nx, ny) && grid.squares[nx][ny].accessible) {
+        const nx = originX + dx;
+        const ny = originY + dy;
+        if (
+          grid.isValidSquare(nx, ny) &&
+          grid.squares[nx][ny].accessible &&
+          hasLineOfSight(grid, originX, originY, nx, ny)
+        ) {
           attackable.push(grid.squares[nx][ny]);
         }
       }

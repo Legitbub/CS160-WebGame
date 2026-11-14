@@ -3,6 +3,7 @@ import { CONSTANTS } from "./Constants";
 import { PlayerCharacter } from "../PlayerCharacter";
 import { CutscenePayload, CutsceneSlide } from "../scenes/Cutscene";
 import { showTextBox } from "./TextBox";
+import { playDoorSound, playWallBump } from "./SoundEffects";
 
 export interface DoorDetails {
     tileX: number;
@@ -52,6 +53,7 @@ export function makeDoors({scene, tilemap, player, layer, fadeTime = 750, cutsce
         const matchingDoor = doors.find(d => d.tileX === tileX && d.tileY === tileY);
         if (matchingDoor) {
             if (matchingDoor.blockedMessage) {
+                playWallBump(scene);
                 showTextBox({
                     scene,
                     player,
@@ -64,6 +66,7 @@ export function makeDoors({scene, tilemap, player, layer, fadeTime = 750, cutsce
             }
 
             fading = true;
+            playDoorSound(scene);
             scene.cameras.main.fadeOut(fadeTime, 0, 0, 0);
             scene.cameras.main.once('camerafadeoutcomplete', () => {
                 if (matchingDoor.slides && matchingDoor.slides.length > 0) {

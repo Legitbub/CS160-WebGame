@@ -13,8 +13,9 @@ export class Kombatant {
   name: string;
   gridX: number;
   gridY: number;
-  moveRange: number = 4;
+  moveRange: number;
   attackRange: number = 1;
+  hasGunAttack: boolean = false;
   hp: number = 100;
   maxHp: number = 100;
   speed: number;
@@ -22,18 +23,41 @@ export class Kombatant {
   isPlayer: boolean;
   hasMoved: boolean = false;
   hasActed: boolean = false;
+  hasUsedBulletproofVest: boolean = false;
+  textureKey: string;
+  shootingTextureKey?: string;
+  currentDirection: FacingDirection = 'down';
+  isShooting: boolean = false;
   sprite: Phaser.GameObjects.Sprite;
   hpText?: Phaser.GameObjects.Text;
   hpBar?: Phaser.GameObjects.Graphics;
   private facingFrames: Record<FacingDirection, number>;
+  private shootingFrames: Record<FacingDirection, number>;
 
-  constructor(scene: Phaser.Scene, name: string, x: number, y: number,
-                        speed: number, isPlayer: boolean, textureKey: string = 'player_stationary') {
+  constructor(
+    scene: Phaser.Scene,
+    name: string,
+    x: number,
+    y: number,
+    speed: number,
+    moveRange: number,
+    isPlayer: boolean,
+    textureKey: string = 'player_stationary',
+    hasGunAttack?: boolean,
+    shootingTextureKey?: string
+  ) {
     this.name = name;
     this.gridX = x;
     this.gridY = y;
     this.speed = speed;
+    this.moveRange = moveRange,
     this.isPlayer = isPlayer;
+    this.textureKey = textureKey;
+    this.hasGunAttack = hasGunAttack ?? (name === 'Bandit Captain');
+    this.shootingTextureKey = shootingTextureKey ?? (this.hasGunAttack ? 'robber_shooting' : undefined);
+    if (this.hasGunAttack) {
+      this.attackRange = 3;
+    }
 
     // 'player_stationary' frames: 0 = down, 1 = up, 2 = left, 3 = right
     // 'robber_stationary' & 'security_guard_stationary' frames: 0 = down, 1 = up, 2 = right, 3 = left
@@ -42,6 +66,9 @@ export class Kombatant {
     } else {
       this.facingFrames = { down: 0, up: 1, left: 2, right: 3 };
     }
+
+    // 'robber_shooting' frames: 0 = down, 1 = up, 2 = left, 3 = right
+    this.shootingFrames = { down: 0, up: 1, left: 2, right: 3 };
 
     const screen = gridToScreen(x, y);
     // Origin at (0.5, 0.75) aligns a character's feet with the diamond center
@@ -64,7 +91,17 @@ export class Kombatant {
   }
 
   setDirection(direction: FacingDirection) {
-    this.sprite.setFrame(this.facingFrames[direction]);
+    this.currentDirection = direction;
+    if (this.isShooting && this.shootingTextureKey) {
+      this.sprite.setTexture(this.shootingTextureKey, this.shootingFrames[direction]);
+    } else {
+      this.sprite.setTexture(this.textureKey, this.facingFrames[direction]);
+    }
+  }
+
+  setShooting(shooting: boolean) {
+    this.isShooting = shooting;
+    this.setDirection(this.currentDirection);
   }
 
   setPosition(x: number, y: number) {

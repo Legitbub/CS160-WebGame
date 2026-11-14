@@ -38,21 +38,34 @@ export interface UnitSpawnConfig {
     x: number;
     y: number;
     speed: number;
+    moveRange: number;
     isPlayer: boolean;
     textureKey: string;
+    hasGunAttack?: boolean;
+    shootingTextureKey?: string;
 }
 
 export const INITIAL_BANK_UNITS: UnitSpawnConfig[] = [
-    { name: "Hero", x: 6, y: 5, speed: 12, isPlayer: true, textureKey: "player_stationary" },
-    { name: "Bank Guard", x: 9, y: 5, speed: 11, isPlayer: false, textureKey: "robber_stationary" },
-    { name: "Security Guard", x: 6, y: 8, speed: 10, isPlayer: true, textureKey: "security_guard_stationary" },
-    { name: "Chief Teller", x: 9, y: 8, speed: 9, isPlayer: false, textureKey: "robber_stationary" }
+    { name: "You", x: 2, y: 11, speed: 12, moveRange: 6, isPlayer: true, textureKey: "player_stationary" },
+    { name: "Bandit", x: 16, y: 2, speed: 11, moveRange: 4, isPlayer: false, textureKey: "robber_stationary" },
+    { name: "Security Guard", x: 3, y: 13, speed: 10, moveRange: 5, isPlayer: true, textureKey: "security_guard_stationary" },
+    {
+        name: "Bandit Captain",
+        x: 18,
+        y: 3,
+        speed: 9,
+        moveRange: 3,
+        isPlayer: false,
+        textureKey: "robber_stationary",
+        hasGunAttack: true,
+        shootingTextureKey: "robber_shooting"
+    }
 ];
 
 export function createInitialInventory(): ItemDefinition[] {
     return [
-        { name: "Potion", description: "Restores 40 HP to a unit", count: 3, effect: 'heal', amount: 40 },
-        { name: "Hi-Potion", description: "Restores 80 HP to a unit", count: 1, effect: 'heal', amount: 80 },
+        { name: "Lollipop", description: "Restores 40 HP to a unit", count: 3, effect: 'heal', amount: 40 },
+        { name: "5 Hour Energy", description: "Restores 80 HP to a unit", count: 1, effect: 'heal', amount: 80 },
         { name: "Coin Toss", description: "Deals 25 DMG to a target", count: 3, effect: 'damage', amount: 25 }
     ];
 }
@@ -77,6 +90,7 @@ export interface BankBattleView {
         onComplete: () => void
     ): void;
     showDamageOrHealEffect(target: Kombatant, delta: number, actualDelta: number): void;
+    showBattleTextBox?(message: string, onComplete: () => void): void;
     delay(ms: number, callback: () => void): void;
     onVictory(): void;
 }
@@ -111,7 +125,7 @@ export class BankBattleLogic {
     }
 
     arePlayersAlive(): boolean {
-        return this.units.some(u => u.isPlayer && u.hp > 0);
+        return this.units.some(u => u.isPlayer && u.hp > 0 && u.name === "You");
     }
 
     isInteractiveMenuState(): boolean {
@@ -372,36 +386,62 @@ export class BankBattleLogic {
         this.highlightedSquares = [];
         this.view.updateHighlights();
 
-        const damage = attacker.isPlayer ? 35 : 25;
+        const damage = attacker.hasGunAttack ? 80 : (attacker.isPlayer ? 95 : 25);
+        let bulletproofVestTriggered = false;
 
         this.view.animateAttack(
             attacker,
             defender,
             targetSquare,
             () => {
-                this.applyDamageOrHeal(defender, -damage);
+                if (
+                    attacker.hasGunAttack &&
+                    defender.name === "Security Guard" &&
+                    defender.hp <= damage &&
+                    !defender.hasUsedBulletproofVest
+                ) {
+                    defender.hasUsedBulletproofVest = true;
+                    bulletproofVestTriggered = true;
+                    const nonLethalDelta = Math.min(-1, -(defender.hp - 1));
+                    this.applyDamageOrHeal(defender, nonLethalDelta, 1);
+                } else {
+                    this.applyDamageOrHeal(defender, -damage);
+                }
+                const verb = attacker.hasGunAttack ? "shot" : "hit";
                 this.view.setInfoText(
-                    `${attacker.name} hit ${defender.name} for ${damage} DMG! (${defender.name} HP: ${defender.hp}/${defender.maxHp})`
+                    `${attacker.name} ${verb} ${defender.name} for ${damage} DMG! (${defender.name} HP: ${defender.hp}/${defender.maxHp})`
                 );
             },
             () => {
                 attacker.setPosition(attacker.gridX, attacker.gridY);
                 attacker.hasActed = true;
-                this.isAnimatingMove = false;
 
-                if (this.checkBattleEnd()) {
-                    return;
-                }
+                const finishAttack = () => {
+                    this.isAnimatingMove = false;
 
-                if (onComplete) {
-                    onComplete();
-                } else if (attacker.isPlayer) {
-                    // Automatically finish the player's turn after attacking so the next unit (enemy) acts
-                    this.view.delay(550, () => {
-                        if (this.state !== 'GAME_OVER') {
-                            this.endTurn();
-                        }
-                    });
+                    if (this.checkBattleEnd()) {
+                        return;
+                    }
+
+                    if (onComplete) {
+                        onComplete();
+                    } else if (attacker.isPlayer) {
+                        // Automatically finish the player's turn after attacking so the next unit (enemy) acts
+                        this.view.delay(550, () => {
+                            if (this.state !== 'GAME_OVER') {
+                                this.endTurn();
+                            }
+                        });
+                    }
+                };
+
+                if (bulletproofVestTriggered && this.view.showBattleTextBox) {
+                    this.view.showBattleTextBox(
+                        "The bulletproof vest prevented an insta-kill!",
+                        finishAttack
+                    );
+                } else {
+                    finishAttack();
                 }
             }
         );
@@ -445,9 +485,9 @@ export class BankBattleLogic {
         });
     }
 
-    private applyDamageOrHeal(target: Kombatant, delta: number): number {
+    private applyDamageOrHeal(target: Kombatant, delta: number, minHp: number = 0): number {
         const prevHp = target.hp;
-        target.hp = Math.max(0, Math.min(target.maxHp, prevHp + delta));
+        target.hp = Math.max(minHp, Math.min(target.maxHp, prevHp + delta));
         const actualDelta = target.hp - prevHp;
 
         target.updateHpText();
@@ -465,23 +505,23 @@ export class BankBattleLogic {
     }
 
     checkBattleEnd(): boolean {
-        const playersAlive = this.units.some(u => u.isPlayer && u.hp > 0);
+        const playersAlive = this.arePlayersAlive();
         const enemiesAlive = this.units.some(u => !u.isPlayer && u.hp > 0);
+
+        if (!playersAlive) {
+            this.state = 'GAME_OVER';
+            this.view.hideMenu();
+            this.view.setTurnBanner("DEFEAT...");
+            this.view.setInfoText("You were defeated! Press ENTER to retry.");
+            return true;
+        }
 
         if (!enemiesAlive) {
             this.state = 'GAME_OVER';
             this.view.onVictory();
             this.view.hideMenu();
             this.view.setTurnBanner("VICTORY!");
-            this.view.setInfoText("All bank guards defeated! Press ENTER to return to City.");
-            return true;
-        }
-
-        if (!playersAlive) {
-            this.state = 'GAME_OVER';
-            this.view.hideMenu();
-            this.view.setTurnBanner("DEFEAT...");
-            this.view.setInfoText("Your party was defeated! Press ENTER to retry.");
+            this.view.setInfoText("All bank robbers defeated! Press ENTER to return to City.");
             return true;
         }
 
@@ -549,11 +589,42 @@ export class BankBattleLogic {
                 return;
             }
 
-            // Find closest player unit by Manhattan distance
+            // Helper to compute shortest path distance around obstacles (falls back to Manhattan if unreachable)
+            const getPathDistance = (fromX: number, fromY: number, toX: number, toY: number): number => {
+                if (fromX === toX && fromY === toY) return 0;
+                const visited = new Set<string>([`${fromX},${fromY}`]);
+                const queue: { x: number; y: number; dist: number }[] = [{ x: fromX, y: fromY, dist: 0 }];
+                const dirs = [
+                    { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
+                    { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
+                ];
+                while (queue.length > 0) {
+                    const curr = queue.shift()!;
+                    for (const d of dirs) {
+                        const nx = curr.x + d.dx;
+                        const ny = curr.y + d.dy;
+                        if (nx === toX && ny === toY) {
+                            return curr.dist + 1;
+                        }
+                        const key = `${nx},${ny}`;
+                        if (!visited.has(key) && this.grid.isValidSquare(nx, ny)) {
+                            const sq = this.grid.squares[nx][ny];
+                            const canPass = sq.accessible && (!sq.occupiedBy || sq.occupiedBy.isPlayer === aiUnit.isPlayer);
+                            if (canPass) {
+                                visited.add(key);
+                                queue.push({ x: nx, y: ny, dist: curr.dist + 1 });
+                            }
+                        }
+                    }
+                }
+                return Math.abs(fromX - toX) + Math.abs(fromY - toY) + 100;
+            };
+
+            // Find closest player unit by path distance around obstacles
             let closestPlayer = playerTargets[0];
-            let bestDist = Math.abs(aiUnit.gridX - closestPlayer.gridX) + Math.abs(aiUnit.gridY - closestPlayer.gridY);
+            let bestDist = getPathDistance(aiUnit.gridX, aiUnit.gridY, closestPlayer.gridX, closestPlayer.gridY);
             for (const p of playerTargets) {
-                const d = Math.abs(aiUnit.gridX - p.gridX) + Math.abs(aiUnit.gridY - p.gridY);
+                const d = getPathDistance(aiUnit.gridX, aiUnit.gridY, p.gridX, p.gridY);
                 if (d < bestDist) {
                     bestDist = d;
                     closestPlayer = p;
@@ -562,21 +633,30 @@ export class BankBattleLogic {
 
             const performAttackAndFinish = () => {
                 if (this.state === 'GAME_OVER') return;
-                this.view.updateHighlights();
 
                 const attackSquares = getAttackableCells(aiUnit, this.grid);
                 const targetSquare = attackSquares.find(
                     sq => sq.occupiedBy && sq.occupiedBy.isPlayer && sq.occupiedBy.hp > 0
                 );
                 if (targetSquare && targetSquare.occupiedBy) {
-                    this.executeFight(aiUnit, targetSquare, () => {
-                        this.view.delay(600, () => {
-                            if (this.state !== 'GAME_OVER') {
-                                this.endTurn();
-                            }
+                    this.highlightedSquares = attackSquares;
+                    this.view.updateHighlights();
+                    if (aiUnit.hasGunAttack) {
+                        this.view.setInfoText(`${aiUnit.name} takes aim at ${targetSquare.occupiedBy.name}!`);
+                    }
+
+                    this.view.delay(aiUnit.hasGunAttack ? 300 : 0, () => {
+                        if (this.state === 'GAME_OVER') return;
+                        this.executeFight(aiUnit, targetSquare, () => {
+                            this.view.delay(600, () => {
+                                if (this.state !== 'GAME_OVER') {
+                                    this.endTurn();
+                                }
+                            });
                         });
                     });
                 } else {
+                    this.view.updateHighlights();
                     this.view.setInfoText(`${aiUnit.name} ends their turn.`);
                     this.view.delay(500, () => {
                         if (this.state !== 'GAME_OVER') {
@@ -586,14 +666,29 @@ export class BankBattleLogic {
                 }
             };
 
-            // Move closer if not already adjacent
+            const currentAttackSquares = getAttackableCells(aiUnit, this.grid);
+            const canAttackFromCurrentPos = currentAttackSquares.some(
+                sq => sq.occupiedBy && sq.occupiedBy.isPlayer && sq.occupiedBy.hp > 0
+            );
+
+            // Move closer if no player is currently in attack range
             const reachable = getReachableCells(aiUnit, this.grid);
-            if (bestDist > aiUnit.attackRange && reachable.length > 0) {
+            if (!canAttackFromCurrentPos && reachable.length > 0) {
                 let bestSquare = reachable[0];
+                let bestCanAttack = false;
                 let minAfterMove = Infinity;
+
                 for (const sq of reachable) {
-                    const d = Math.abs(sq.x - closestPlayer.gridX) + Math.abs(sq.y - closestPlayer.gridY);
-                    if (d < minAfterMove) {
+                    const canAttackFromSq = getAttackableCells(aiUnit, this.grid, sq.x, sq.y).some(
+                        targetSq => targetSq.occupiedBy && targetSq.occupiedBy.isPlayer && targetSq.occupiedBy.hp > 0
+                    );
+                    const d = getPathDistance(sq.x, sq.y, closestPlayer.gridX, closestPlayer.gridY);
+
+                    if (canAttackFromSq && !bestCanAttack) {
+                        bestCanAttack = true;
+                        minAfterMove = d;
+                        bestSquare = sq;
+                    } else if (canAttackFromSq === bestCanAttack && d < minAfterMove) {
                         minAfterMove = d;
                         bestSquare = sq;
                     }

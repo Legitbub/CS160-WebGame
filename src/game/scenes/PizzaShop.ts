@@ -67,6 +67,8 @@ export class PizzaShop extends Scene {
     private orderTimer?: Phaser.Time.TimerEvent;
     private secondsLeft = ORDER_SECONDS;
     private advancing = false;
+    private pizzasMade = 0;
+    private static readonly SHIFT_LENGTH = 10;
     private pizzaX = 0;
     private pizzaY = 0;
     private pizzaSize = 0;
@@ -83,6 +85,7 @@ export class PizzaShop extends Scene {
         this.layers = [];
         this.advancing = false;
         this.orderIndex = 0;
+        this.pizzasMade = 0;
 
         const background = this.add.image(0, 0, "pizza_background").setOrigin(0, 0);
         const scale = Math.max(this.scale.width / background.width, this.scale.height / background.height);
@@ -207,9 +210,77 @@ export class PizzaShop extends Scene {
         this.advancing = true;
         this.orderTimer?.remove(false);
         this.orderTimer = undefined;
-        playPizzaFailure(this);
-        this.statusText.setText("Time's up");
-        this.clearBoard(() => this.advanceOrder());
+        this.statusText.setText("");
+        this.showOvenPopup();
+    }
+
+    private showOvenPopup() {
+        const { width, height } = this.scale;
+        const popup: Phaser.GameObjects.GameObject[] = [
+            this.add.rectangle(width / 2, height / 2, width, height, 0x0f141d, 0.72)
+                .setDepth(40)
+                .setInteractive(),
+            this.add.rectangle(width / 2, height / 2, 560, 220, 0x1a1208)
+                .setStrokeStyle(4, 0xf39c12)
+                .setDepth(41),
+            this.add.text(width / 2, height / 2 - 36, "You useless, go work\nat the oven station.", {
+                fontFamily: "Courier New, monospace",
+                fontSize: "28px",
+                color: "#f39c12",
+                align: "center"
+            }).setOrigin(0.5).setDepth(42)
+        ];
+
+        const button = this.add.text(width / 2, height / 2 + 52, "Okay", {
+            fontFamily: "Courier New, monospace",
+            fontSize: "22px",
+            color: "#ecf0f1",
+            backgroundColor: "#0f141d",
+            padding: { x: 12, y: 6 }
+        }).setOrigin(0.5).setDepth(42).setInteractive({ useHandCursor: true });
+
+        button.on("pointerover", () => button.setColor("#f39c12"));
+        button.on("pointerout", () => button.setColor("#ecf0f1"));
+        button.on("pointerdown", () => {
+            popup.forEach((piece) => piece.destroy());
+            button.destroy();
+            this.goToOven();
+        });
+    }
+
+    private showManagerPopup() {
+        const { width, height } = this.scale;
+        this.add.rectangle(width / 2, height / 2, width, height, 0x0f141d, 0.72)
+            .setDepth(40)
+            .setInteractive();
+        this.add.rectangle(width / 2, height / 2, 620, 240, 0x1a1208)
+            .setStrokeStyle(4, 0xf39c12)
+            .setDepth(41);
+        this.add.text(width / 2, height / 2 - 28, "Manager: go help at the oven station if youre done. Move Move!", {
+            fontFamily: "Courier New, monospace",
+            fontSize: "22px",
+            color: "#f39c12",
+            align: "center",
+            wordWrap: { width: 540 }
+        }).setOrigin(0.5).setDepth(42);
+
+        const button = this.add.text(width / 2, height / 2 + 64, "Move!", {
+            fontFamily: "Courier New, monospace",
+            fontSize: "22px",
+            color: "#ecf0f1",
+            backgroundColor: "#0f141d",
+            padding: { x: 12, y: 6 }
+        }).setOrigin(0.5).setDepth(42).setInteractive({ useHandCursor: true });
+
+        button.on("pointerover", () => button.setColor("#f39c12"));
+        button.on("pointerout", () => button.setColor("#ecf0f1"));
+        button.on("pointerdown", () => this.goToOven());
+    }
+
+    private goToOven() {
+        this.orderTimer?.remove(false);
+        this.orderTimer = undefined;
+        this.scene.start("PizzaOven", { ingredients: this.currentOrder().ingredients });
     }
 
     private completeOrder() {
@@ -219,7 +290,14 @@ export class PizzaShop extends Scene {
         this.orderTimer = undefined;
         playPizzaSuccess(this);
         this.statusText.setText("Order complete");
-        this.clearBoard(() => this.advanceOrder());
+        this.clearBoard(() => {
+            this.pizzasMade += 1;
+            if (this.pizzasMade >= PizzaShop.SHIFT_LENGTH) {
+                this.showManagerPopup();
+                return;
+            }
+            this.advanceOrder();
+        });
     }
 
     private clearBoard(next: () => void) {

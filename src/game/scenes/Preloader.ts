@@ -92,6 +92,7 @@ export class Preloader extends Scene
 
         // Pizza Shop Scene Assets
         this.load.image("pizza_background", "/assets/pizza_shop/pizza_background.png");
+        this.load.image("pizza_oven_background", "/assets/pizza_shop/Pizza_Oven_Scene_background.png");
         this.load.image("dough_layer", "/assets/pizza_shop/ingredients/dough_layer.png");
         this.load.image("tomato_sauce_layer", "/assets/pizza_shop/ingredients/tomato_sauce_layer_clean.png");
         this.load.image("cheese_layer", "/assets/pizza_shop/ingredients/cheese_layer_clean.png");

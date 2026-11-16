@@ -20,6 +20,8 @@ export class MainMenu extends Scene
     create ()
     {
         const {width, height} = this.scale;
+        this.menuText = [];
+        this.selected = 0;
 
         this.cameras.main.setBackgroundColor(0x0f141d);
 

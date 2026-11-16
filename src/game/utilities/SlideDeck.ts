@@ -292,7 +292,7 @@ export const ENDING_CUTSCENE: CutscenePayload = {
             panY: 0,
         }
     ],
-    nextSceneKey: "MainMenu",
+    nextSceneKey: "GameOver",
     nextSceneData: {}
 };
 

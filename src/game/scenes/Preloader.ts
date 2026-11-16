@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { ENDING_CUTSCENE } from '../utilities/SlideDeck';
 
 const PIZZA_ORDER_SPRITES = [
     "cheese_pizza",
@@ -148,7 +149,6 @@ export class Preloader extends Scene
         });
 
         // --- PLAYER RIGHT ---
-        // (If you don't flip 'player-left' and have distinct right frames)
         this.anims.create({
             key: 'player-right',
             frames: [

@@ -15,16 +15,12 @@ export class GameOver extends Scene
     create ()
     {
         this.camera = this.cameras.main
-        this.camera.setBackgroundColor(0xff0000);
+        const {width, height} = this.scale;
 
-        this.background = this.add.image(512, 384, 'background');
-        this.background.setAlpha(0.5);
+        this.background = this.add.image(width / 2, height / 2, "title").setOrigin(0.5);
 
-        this.gameOverText = this.add.text(512, 384, 'Game Over', {
-            fontFamily: 'Arial Black', fontSize: 64, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 8,
-            align: 'center'
-        }).setOrigin(0.5).setDepth(100);
+        this.input.once('pointerdown', () => this.changeScene());
+        this.input.keyboard?.once('keydown', () => this.changeScene());
         
         EventBus.emit('current-scene-ready', this);
     }

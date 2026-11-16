@@ -409,11 +409,9 @@ export class Runner extends Scene {
         this.player.setTexture("player_stationary", 1);
 
         if (won) {
-            this.registry.set("drivingCompleted", true);
             this.registry.set("runnerCompleted", true);
         } else {
             // Allow the player to re-enter Runner after losing
-            this.registry.set("drivingCompleted", false);
             this.registry.set("runnerCompleted", false);
         }
 

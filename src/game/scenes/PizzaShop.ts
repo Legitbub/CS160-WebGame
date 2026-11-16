@@ -56,7 +56,7 @@ const orders: PizzaRecipe[] = [
     }
 ];
 
-const ORDER_SECONDS = 8;
+const ORDER_SECONDS = 6;
 
 export class PizzaShop extends Scene {
     private orderIndex = 0;

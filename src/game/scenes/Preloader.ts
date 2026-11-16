@@ -55,6 +55,8 @@ export class Preloader extends Scene
         this.load.image("entering_bank", "/assets/cutscene_slides/entering the bank.jpg");
         this.load.image("outside_pizza", "/assets/cutscene_slides/outside the pizza place.jpg");
         this.load.image("entering_pizza", "/assets/cutscene_slides/entering the pizza place.jpg");
+        this.load.image("outside_warehouse", "/assets/cutscene_slides/outside the warehouse.jpg");
+        this.load.image("entering_warehouse", "/assets/cutscene_slides/entering the warehouse.jpg");
         this.load.image("getting_back_home", "/assets/cutscene_slides/getting back home.jpg");
         this.load.image("frustrated", "/assets/cutscene_slides/frustrated.jpg");
         this.load.image("inspiration", "/assets/cutscene_slides/inspiration.jpg");

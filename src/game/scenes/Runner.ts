@@ -194,7 +194,6 @@ export class Runner extends Scene {
         this.player.setVelocity(0, 0);
 
         if (won) {
-            this.registry.set("drivingCompleted", true);
             this.registry.set("runnerCompleted", true);
         }
 

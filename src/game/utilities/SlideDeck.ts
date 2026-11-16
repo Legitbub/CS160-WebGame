@@ -144,9 +144,53 @@ export const PIZZA_CUTSCENE_SLIDES: CutsceneSlide[] = [
     }
 ];
 
+export const WAREHOUSE_CUTSCENE_SLIDES: CutsceneSlide[] = [
+    {
+        textureKey: "outside_warehouse",
+        text: "Slamazon, huh? Well, a delivery job can't be that bad...",
+        textColor: '#ffffff',
+        zoom: 1,
+        panX: 0,
+        panY: 0,
+    },
+    {
+        textureKey: "entering_warehouse",
+        text: "YOU! New guy! We're way behind on deliveries and I got an ultra high priority box right in this neighborhood!",
+        textColor: '#ffffff',
+        zoom: 1,
+        panX: 0,
+        panY: 0,
+    },
+    {
+        textureKey: "entering_warehouse",
+        text: "Get out on the road and start running packages NOW!",
+        textColor: '#ffffff',
+        zoom: 1,
+        panX: 0,
+        panY: 0,
+    },
+    {
+        textureKey: "entering_warehouse",
+        text: "Wait, on foot?! Through oncoming traffic?!",
+        textColor: '#ffffff',
+        zoom: 1,
+        panX: 0,
+        panY: 0,
+    },
+    {
+        textureKey: "entering_warehouse",
+        text: "Truck's full and the clock's ticking! Dodge those cars and get moving, rookie!",
+        textColor: '#ffffff',
+        zoom: 1,
+        panX: 0,
+        panY: 0,
+    }
+];
+
 export const CITY_DOOR_CUTSCENES: Record<string, CutsceneSlide[]> = {
     Battle_in_Bank: BANK_CUTSCENE_SLIDES,
-    PizzaShop: PIZZA_CUTSCENE_SLIDES
+    PizzaShop: PIZZA_CUTSCENE_SLIDES,
+    Runner: WAREHOUSE_CUTSCENE_SLIDES
 };
 
 export const ENDING_CUTSCENE: CutscenePayload = {

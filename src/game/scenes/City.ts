@@ -26,14 +26,12 @@ export class City extends Scene {
     {
         const bankCompleted = Boolean(this.registry.get("bankCompleted"));
         const pizzaCompleted = Boolean(this.registry.get("pizzaCompleted"));
-        const drivingCompleted = Boolean(
-            this.registry.get("drivingCompleted") || this.registry.get("runnerCompleted")
+        const runnerCompleted = Boolean(this.registry.get("runnerCompleted")
         );
 
-        if (bankCompleted && pizzaCompleted && drivingCompleted) {
+        if (bankCompleted && pizzaCompleted && runnerCompleted) {
             this.registry.set("bankCompleted", false);
             this.registry.set("pizzaCompleted", false);
-            this.registry.set("drivingCompleted", false);
             this.registry.set("runnerCompleted", false);
 
             this.scene.start("Cutscene", ENDING_CUTSCENE);
@@ -68,7 +66,7 @@ export class City extends Scene {
         if (pizzaCompleted) {
             blockedDoors.PizzaShop = "You already finished your shift at the pizza shop!";
         }
-        if (drivingCompleted) {
+        if (runnerCompleted) {
             blockedDoors.Runner = "You already finished your delivery shift!";
         }
 

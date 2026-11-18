@@ -17,7 +17,7 @@ function App()
     // React button to manually start the game scene if desired
     const handleStartGame = () => {
         if (phaserRef.current && phaserRef.current.scene) {
-            phaserRef.current.scene.scene.start('Game');
+            phaserRef.current.scene.scene.start('Home');
         }
     };
 

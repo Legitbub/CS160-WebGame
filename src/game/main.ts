@@ -25,7 +25,7 @@ const config: Phaser.Types.Core.GameConfig = {
         Scenes.Preloader,
         Scenes.MainMenu,
         Scenes.Cutscene,
-        Scenes.Game,
+        Scenes.Home,
         Scenes.City,
         Scenes.PizzaShop,
         Scenes.PizzaOven,

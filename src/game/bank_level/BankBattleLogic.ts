@@ -498,6 +498,7 @@ export class BankBattleLogic {
             target.sprite.setVisible(false);
             target.hpText?.setVisible(false);
             target.hpBar?.clear();
+            target.turnArrow?.clear();
         }
 
         this.view.showDamageOrHealEffect(target, delta, actualDelta);
@@ -510,6 +511,7 @@ export class BankBattleLogic {
 
         if (!playersAlive) {
             this.state = 'GAME_OVER';
+            this.units.forEach(u => u.setActiveTurn(false));
             this.view.hideMenu();
             this.view.setTurnBanner("DEFEAT...");
             this.view.setInfoText("You were defeated! Press ENTER to retry.");
@@ -518,6 +520,7 @@ export class BankBattleLogic {
 
         if (!enemiesAlive) {
             this.state = 'GAME_OVER';
+            this.units.forEach(u => u.setActiveTurn(false));
             this.view.onVictory();
             this.view.hideMenu();
             this.view.setTurnBanner("VICTORY!");
@@ -534,6 +537,7 @@ export class BankBattleLogic {
             activeUnit.ct = Math.max(0, activeUnit.ct - 100);
             activeUnit.hasMoved = false;
             activeUnit.hasActed = false;
+            activeUnit.setActiveTurn(false);
         }
 
         this.view.hideMenu();
@@ -564,6 +568,7 @@ export class BankBattleLogic {
         this.activeUnitIndex = this.units.indexOf(readyUnit);
         readyUnit.hasMoved = false;
         readyUnit.hasActed = false;
+        this.units.forEach(u => u.setActiveTurn(u === readyUnit));
 
         if (readyUnit.isPlayer) {
             this.openUnitMenu();

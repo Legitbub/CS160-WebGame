@@ -334,7 +334,7 @@
                         {
                          "name":"exitTo",
                          "type":"string",
-                         "value":"Game"
+                         "value":"Home"
                         }, 
                         {
                          "name":"spawnX",

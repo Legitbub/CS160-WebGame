@@ -4,8 +4,9 @@ import { PlayerCharacter } from '../PlayerCharacter';
 import { CONSTANTS } from '../utilities/Constants';
 import { PlayerSetupOptions, PlayerSpawn } from '../utilities/PlayerSpawn';
 import { DoorDetails, makeDoors } from '../utilities/DoorSpawn';
+import { showTextBox } from '../utilities/TextBox';
 
-export class Game extends Scene
+export class Home extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
     gameText: Phaser.GameObjects.Text;
@@ -16,11 +17,11 @@ export class Game extends Scene
 
     constructor ()
     {
-        super('Game');
+        super('Home');
     }
 
-    init(data: {spawnAt: {x: number, y: number}}) {
-        this.spawnAt = data.spawnAt;
+    init(data: {spawnAt?: {x: number, y: number}}) {
+        this.spawnAt = data?.spawnAt;
     }
     
     create ()
@@ -49,6 +50,16 @@ export class Game extends Scene
             player: this.player,
             layer: "Doors"
         });
+
+        if (!this.registry.get("hasSeenMoveTutorial")) {
+            this.registry.set("hasSeenMoveTutorial", true);
+            showTextBox({
+                scene: this,
+                player: this.player,
+                pages: "Use arrow keys to move.",
+                position: "bottom"
+            });
+        }
 
         EventBus.emit('current-scene-ready', this);
     }

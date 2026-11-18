@@ -66,7 +66,7 @@ export class Preloader extends Scene
         this.load.image("celebrate", "/assets/cutscene_slides/celebrate.jpg");
         this.load.image("ending", "/assets/cutscene_slides/ending.jpg");
 
-        // House (Game) Scene Assets
+        // House (Home) Scene Assets
         this.load.image("tiles", "/scene_tilemaps/Cottage_Tileset/Cottage_Tileset.png");
         this.load.tilemapTiledJSON("tiles_map", "/assets/test.json");
 

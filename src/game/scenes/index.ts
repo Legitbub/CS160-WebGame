@@ -4,7 +4,7 @@ export { Boot } from "./Boot";
 export { City } from "./City";
 export { PizzaShop } from "./PizzaShop";
 export { PizzaOven } from "./PizzaOven";
-export { Game } from "./Game";
+export { Home } from "./Home";
 export { GameOver } from "./GameOver";
 export { Preloader } from "./Preloader";
 export { Cutscene } from "./Cutscene"

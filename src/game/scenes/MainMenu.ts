@@ -128,6 +128,7 @@ export class MainMenu extends Scene
             this.registry.set("pizzaCompleted", false);
             this.registry.set("drivingCompleted", false);
             this.registry.set("runnerCompleted", false);
+            this.registry.set("hasSeenMoveTutorial", false);
 
             this.scene.start("Cutscene", INTRO_CUTSCENE);
         } else if (chosen === "Settings") {

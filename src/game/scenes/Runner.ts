@@ -137,12 +137,15 @@ export class Runner extends Scene {
         this.cameras.main.setZoom(2);
         this.cameras.main.startFollow(this.player, true);
 
-        // Prevent browser scrolling with arrow keys
+        // Prevent browser scrolling with arrow keys and spacebar
+        this.input.keyboard?.removeAllListeners();
         this.input.keyboard?.addCapture([
             "LEFT",
             "RIGHT",
             "UP",
-            "DOWN"
+            "DOWN",
+            "SPACE",
+            "ENTER"
         ]);
 
         this.input.keyboard?.on("keydown-LEFT", () => {
@@ -448,14 +451,108 @@ export class Runner extends Scene {
             .setScrollFactor(0)
             .setDepth(101);
 
-        this.time.delayedCall(1800, () => {
-            this.scene.start("City", {
-                // Spawn away from the doorway
-                spawnAt: {
-                    x: 3,
-                    y: 6
-                }
+        if (won) {
+            this.time.delayedCall(1800, () => {
+                this.scene.start("City", {
+                    // Spawn away from the doorway
+                    spawnAt: {
+                        x: 3,
+                        y: 6
+                    }
+                });
             });
+        } else {
+            this.showGameOverButtons();
+        }
+    }
+
+    private showGameOverButtons() {
+        const options = ["Retry", "Exit"];
+        let selectedIndex = 0;
+
+        const centerX = this.scale.width / 2;
+        const buttonY = this.scale.height / 2 + 100;
+        const spacing = 180;
+
+        const buttonTexts: Phaser.GameObjects.Text[] = options.map((label, index) => {
+            const x = centerX + (index - 0.5) * spacing;
+            const btn = this.add
+                .text(x, buttonY, label, {
+                    fontFamily: '"Press Start 2P", monospace',
+                    fontSize: "28px",
+                    color: "#ffffff",
+                    stroke: "#000000",
+                    strokeThickness: 3,
+                    padding: { x: 16, y: 8 }
+                })
+                .setOrigin(0.5)
+                .setScrollFactor(0)
+                .setDepth(102)
+                .setInteractive({ useHandCursor: true });
+
+            btn.on("pointerover", () => {
+                selectedIndex = index;
+                updateSelection();
+            });
+
+            btn.on("pointerdown", () => {
+                selectedIndex = index;
+                updateSelection();
+                confirmOption();
+            });
+
+            return btn;
         });
+
+        const updateSelection = () => {
+            buttonTexts.forEach((btn, index) => {
+                const isSelected = index === selectedIndex;
+                btn.setColor(isSelected ? "#ffe600" : "#ffffff");
+                btn.setScale(isSelected ? 1.15 : 1.0);
+            });
+        };
+
+        let actionTaken = false;
+        const confirmOption = () => {
+            if (actionTaken) return;
+            actionTaken = true;
+
+            this.input.keyboard?.off("keydown-LEFT", movePrev);
+            this.input.keyboard?.off("keydown-UP", movePrev);
+            this.input.keyboard?.off("keydown-RIGHT", moveNext);
+            this.input.keyboard?.off("keydown-DOWN", moveNext);
+            this.input.keyboard?.off("keydown-SPACE", confirmOption);
+            this.input.keyboard?.off("keydown-ENTER", confirmOption);
+
+            if (options[selectedIndex] === "Retry") {
+                this.scene.restart();
+            } else {
+                this.scene.start("City", {
+                    spawnAt: {
+                        x: 3,
+                        y: 6
+                    }
+                });
+            }
+        };
+
+        const movePrev = () => {
+            selectedIndex = (selectedIndex - 1 + options.length) % options.length;
+            updateSelection();
+        };
+
+        const moveNext = () => {
+            selectedIndex = (selectedIndex + 1) % options.length;
+            updateSelection();
+        };
+
+        this.input.keyboard?.on("keydown-LEFT", movePrev);
+        this.input.keyboard?.on("keydown-UP", movePrev);
+        this.input.keyboard?.on("keydown-RIGHT", moveNext);
+        this.input.keyboard?.on("keydown-DOWN", moveNext);
+        this.input.keyboard?.on("keydown-SPACE", confirmOption);
+        this.input.keyboard?.on("keydown-ENTER", confirmOption);
+
+        updateSelection();
     }
 }

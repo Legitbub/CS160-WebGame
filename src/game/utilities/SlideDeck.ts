@@ -45,7 +45,7 @@ export const INTRO_CUTSCENE: CutscenePayload = {
             panY: 0,
         }
     ],
-    nextSceneKey: "Game",
+    nextSceneKey: "Home",
     nextSceneData: {}
 };
 

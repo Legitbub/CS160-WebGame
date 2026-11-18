@@ -28,9 +28,12 @@ export class Kombatant {
   shootingTextureKey?: string;
   currentDirection: FacingDirection = 'down';
   isShooting: boolean = false;
+  isActiveTurn: boolean = false;
   sprite: Phaser.GameObjects.Sprite;
   hpText?: Phaser.GameObjects.Text;
   hpBar?: Phaser.GameObjects.Graphics;
+  turnArrow?: Phaser.GameObjects.Graphics;
+  private arrowBounceOffset = { y: 0 };
   private facingFrames: Record<FacingDirection, number>;
   private shootingFrames: Record<FacingDirection, number>;
 
@@ -75,6 +78,21 @@ export class Kombatant {
     this.sprite = scene.add.sprite(screen.x, screen.y, textureKey, 0).setOrigin(0.5, 0.75);
 
     this.hpBar = scene.add.graphics();
+    this.turnArrow = scene.add.graphics();
+
+    scene.tweens.add({
+      targets: this.arrowBounceOffset,
+      y: -5,
+      duration: 500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      onUpdate: () => {
+        if (this.isActiveTurn && this.hp > 0) {
+          this.drawTurnArrow();
+        }
+      }
+    });
 
     this.hpText = scene.add.text(screen.x, screen.y - 26, `${this.hp}/${this.maxHp}`, {
       fontFamily: 'Courier New, monospace',
@@ -113,17 +131,47 @@ export class Kombatant {
     this.updateDepth();
   }
 
+  setActiveTurn(active: boolean) {
+    this.isActiveTurn = active;
+    this.syncOverheadUI();
+  }
+
   syncOverheadUI() {
     if (this.hpText) {
       this.hpText.setPosition(this.sprite.x, this.sprite.y - 26);
+      this.hpText.setVisible(this.hp > 0 && !this.isActiveTurn);
     }
     this.drawHpBar();
+    this.drawTurnArrow();
+  }
+
+  drawTurnArrow() {
+    if (!this.turnArrow) return;
+    this.turnArrow.clear();
+    if (this.hp <= 0 || !this.isActiveTurn) return;
+
+    const tipX = this.sprite.x;
+    const tipY = this.sprite.y - 21 + this.arrowBounceOffset.y;
+
+    const fillColor = this.isPlayer ? 0x2ecc71 : 0xe74c3c;
+
+    // Downward-pointing triangle matching the menu selector style
+    const points = [
+      new Phaser.Math.Vector2(tipX, tipY),
+      new Phaser.Math.Vector2(tipX - 5, tipY - 8),
+      new Phaser.Math.Vector2(tipX + 5, tipY - 8)
+    ];
+
+    this.turnArrow.fillStyle(fillColor, 1);
+    this.turnArrow.fillPoints(points, true);
+    this.turnArrow.lineStyle(0.75, 0x000000, 0.8);
+    this.turnArrow.strokePoints(points, true);
   }
 
   drawHpBar() {
     if (!this.hpBar) return;
     this.hpBar.clear();
-    if (this.hp <= 0) return;
+    if (this.hp <= 0 || this.isActiveTurn) return;
 
     const barWidth = 24;
     const barHeight = 4;
@@ -155,12 +203,15 @@ export class Kombatant {
     if (this.hpText) {
       this.hpText.setDepth(baseDepth + 2);
     }
+    if (this.turnArrow) {
+      this.turnArrow.setDepth(baseDepth + 2);
+    }
   }
 
   updateHpText() {
     if (this.hpText) {
       this.hpText.setText(`${Math.max(0, this.hp)}/${this.maxHp}`);
     }
-    this.drawHpBar();
+    this.syncOverheadUI();
   }
 }

@@ -316,7 +316,7 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
         const color = delta >= 0 ? "#2ecc71" : "#ff3b3b";
 
         const popText = this.add.text(screen.x, screen.y - 34, label, {
-            fontFamily: "Courier New, monospace",
+            fontFamily: '"Press Start 2P", monospace',
             fontSize: "20px",
             fontStyle: "bold",
             color,
@@ -380,7 +380,7 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
 
         // Top-left Unit HP Status Roster so all units' HP is clearly visible at all times
         this.unitStatusText = this.add.text(view.left + 8, view.top + 8, "", {
-            fontFamily: "Courier New, monospace",
+            fontFamily: '"Press Start 2P", monospace',
             fontSize: "13px",
             color: "#ecf0f1",
             backgroundColor: "#10182be6",
@@ -403,7 +403,7 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
             "ESC/R-CLICK: Cancel / Back"
         ];
         this.controlsGuideText = this.add.text(view.right - 8, view.top + 8, guideLines.join("\n"), {
-            fontFamily: "Courier New, monospace",
+            fontFamily: '"Press Start 2P", monospace',
             fontSize: "14px",
             color: "#d6eaf8",
             backgroundColor: "#10182be6",
@@ -419,7 +419,7 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
 
         // Bottom info/help text bar
         this.infoText = this.add.text(view.centerX, view.bottom - 8, "", {
-            fontFamily: "Courier New, monospace",
+            fontFamily: '"Press Start 2P", monospace',
             fontSize: "16px",
             color: "#ecf0f1",
             backgroundColor: "#0d1322e6",
@@ -441,7 +441,7 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
         this.actionMenuContainer.add(this.menuBg);
 
         this.menuTitleText = this.add.text(14, 10, "", {
-            fontFamily: "Courier New, monospace",
+            fontFamily: '"Press Start 2P", monospace',
             fontSize: "16px",
             fontStyle: "bold",
             color: "#f39c12",
@@ -497,7 +497,7 @@ export class Battle_in_Bank extends Scene implements BankBattleView {
         options.forEach((opt, idx) => {
             const itemY = 42 + idx * rowHeight;
             const textObj = this.add.text(36, itemY, opt.label, {
-                fontFamily: "Courier New, monospace",
+                fontFamily: '"Press Start 2P", monospace',
                 fontSize: "17px",
                 color: opt.enabled ? "#ecf0f1" : "#6c7a89",
                 resolution: 2

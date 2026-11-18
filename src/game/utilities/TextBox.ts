@@ -5,14 +5,15 @@ export interface TextBoxOptions {
     scene: Scene;
     player?: PlayerCharacter;
     pages: string | string[];
+    position?: "bottom" | "center";
     onComplete?: () => void;
 }
 
 /**
- * Displays a multi-page Pokemon-style dialogue box at the bottom of the camera view.
+ * Displays a multi-page Pokemon-style dialogue box in the camera view.
  * Freezes player movement while open and advances pages / closes with SPACEBAR.
  */
-export function showTextBox({ scene, player, pages, onComplete }: TextBoxOptions): void {
+export function showTextBox({ scene, player, pages, position = "bottom", onComplete }: TextBoxOptions): void {
     const pageList = Array.isArray(pages) ? pages : [pages];
     if (pageList.length === 0) {
         onComplete?.();
@@ -27,11 +28,14 @@ export function showTextBox({ scene, player, pages, onComplete }: TextBoxOptions
     const viewW = scene.scale.width / cam.zoom;
     const viewH = scene.scale.height / cam.zoom;
     const centerX = cam.worldView.width > 0 ? cam.worldView.centerX : cam.midPoint.x;
+    const centerY = cam.worldView.height > 0 ? cam.worldView.centerY : cam.midPoint.y;
     const bottomY = cam.worldView.height > 0 ? cam.worldView.bottom : cam.midPoint.y + viewH / 2;
 
     const boxScreenW = Math.min(scene.scale.width - 80, 760);
     const boxScreenH = 110;
-    const boxY = bottomY - (boxScreenH / 2 + 18) * invZoom;
+    const boxY = position === "center"
+        ? centerY
+        : bottomY - (boxScreenH / 2 + 18) * invZoom;
 
     const container = scene.add.container(centerX, boxY)
         .setScale(invZoom)
@@ -78,18 +82,20 @@ export function showTextBox({ scene, player, pages, onComplete }: TextBoxOptions
         repeat: -1
     });
 
-    const handleSpace = () => {
+    const handleAdvance = () => {
         currentPage++;
         if (currentPage < pageList.length) {
             textObj.setText(pageList[currentPage]);
         } else {
-            scene.input.keyboard?.off("keydown-SPACE", handleSpace);
+            scene.input.keyboard?.off("keydown-SPACE", handleAdvance);
+            scene.input.off("pointerdown", handleAdvance);
             container.destroy();
             player?.setFrozen(false);
             onComplete?.();
         }
     };
 
-    scene.input.keyboard?.on("keydown-SPACE", handleSpace);
+    scene.input.keyboard?.on("keydown-SPACE", handleAdvance);
+    scene.input.on("pointerdown", handleAdvance);
 }
 

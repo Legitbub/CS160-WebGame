@@ -34,7 +34,7 @@ playable parts of the game into small levels with their own style of play. This 
 to the game but also lets us showcase different game genres that work well with the arcade theme. 
 Maybe you can guess which famous games inspired these levels!
 
-###Web interface
+### Web interface
 
 Although this isn't a classic arcade feature, we chose to release the game online to make it as 
 accessible as possible. One of the nice things about arcade games is that they are quick and have 

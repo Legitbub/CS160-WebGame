@@ -1,6 +1,7 @@
 import { EventBus } from "../EventBus";
 import { Scene } from "phaser";
-import { playPizzaSuccess, playPizzaFailure } from "../utilities/SoundEffects";
+import { playPizzaBgm, playPizzaFailure, playPizzaSuccess, stopPizzaBgm } from "../utilities/SoundEffects";
+import { showTextBox } from "../utilities/TextBox";
 
 type PizzaRecipe = {
     name: string;
@@ -63,6 +64,7 @@ export class PizzaShop extends Scene {
     private placed = new Set<string>();
     private layers: Phaser.GameObjects.Image[] = [];
     private orderImage!: Phaser.GameObjects.Image;
+    private countText!: Phaser.GameObjects.Text;
     private orderDisplaySize = 0;
     private orderTimer?: Phaser.Time.TimerEvent;
     private secondsLeft = ORDER_SECONDS;
@@ -74,6 +76,7 @@ export class PizzaShop extends Scene {
     private pizzaSize = 0;
     private statusText!: Phaser.GameObjects.Text;
     private timerText!: Phaser.GameObjects.Text;
+    private cueOpen = false;
 
     constructor() {
         super("PizzaShop");
@@ -96,11 +99,24 @@ export class PizzaShop extends Scene {
         );
 
         this.orderDisplaySize = Math.min(ORDER_BOARD.width, ORDER_BOARD.height) * 0.72 * scale;
+        const boardCenterX = background.x + (ORDER_BOARD.x + ORDER_BOARD.width / 2) * scale;
         this.orderImage = this.add.image(
-            background.x + (ORDER_BOARD.x + ORDER_BOARD.width / 2) * scale,
-            background.y + (ORDER_BOARD.y + ORDER_BOARD.height / 2) * scale,
+            boardCenterX,
+            background.y + (ORDER_BOARD.y + ORDER_BOARD.height / 2 + 16) * scale,
             orders[this.orderIndex].textureKey
         ).setDisplaySize(this.orderDisplaySize, this.orderDisplaySize);
+        this.countText = this.add.text(
+            boardCenterX,
+            background.y + (ORDER_BOARD.y + 22) * scale,
+            "",
+            {
+                fontFamily: "Courier New, monospace",
+                fontSize: "22px",
+                color: "#3d2914",
+                fontStyle: "bold"
+            }
+        ).setOrigin(0.5).setDepth(5);
+        this.updatePizzaCount();
 
         this.pizzaX = background.x + (PREP_BOARD.x + PREP_BOARD.width / 2) * scale;
         this.pizzaY = background.y + (PREP_BOARD.y + PREP_BOARD.height / 2) * scale;
@@ -127,7 +143,17 @@ export class PizzaShop extends Scene {
             backgroundColor: "#0f141d",
             padding: { x: 12, y: 6 }
         }).setOrigin(1, 0).setDepth(30);
-        this.startOrderTimer();
+        this.cueOpen = true;
+        showTextBox({
+            scene: this,
+            pages: "Click the pizza dough to start.",
+            position: "bottom",
+            onComplete: () => {
+                this.cueOpen = false;
+                this.startOrderTimer();
+            }
+        });
+        playPizzaBgm(this);
 
         const exitButton = this.addExitButton();
         this.addTrashButton(exitButton.x + exitButton.width + 12);
@@ -176,12 +202,18 @@ export class PizzaShop extends Scene {
     private leaveToCity() {
         this.orderTimer?.remove(false);
         this.orderTimer = undefined;
+        stopPizzaBgm(this);
         this.registry.set("pizzaCompleted", true);
         this.scene.start("City", { spawnAt: { x: 2, y: 16 } });
     }
 
     private currentOrder() {
         return orders[this.orderIndex];
+    }
+
+    private updatePizzaCount() {
+        const current = Math.min(this.pizzasMade + 1, PizzaShop.SHIFT_LENGTH);
+        this.countText.setText(`${current}/${PizzaShop.SHIFT_LENGTH}`);
     }
 
     private startOrderTimer() {
@@ -330,6 +362,7 @@ export class PizzaShop extends Scene {
         this.orderImage.setDisplaySize(this.orderDisplaySize, this.orderDisplaySize);
         this.statusText.setText("");
         this.advancing = false;
+        this.updatePizzaCount();
         this.startOrderTimer();
     }
 
@@ -357,7 +390,7 @@ export class PizzaShop extends Scene {
     }
 
     private addIngredient(id: string) {
-        if (this.advancing) return;
+        if (this.cueOpen || this.advancing) return;
         if (this.placed.has(id)) return;
         if (id !== "dough" && !this.placed.has("dough")) return;
 

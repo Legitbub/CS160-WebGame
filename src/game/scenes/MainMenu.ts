@@ -25,6 +25,35 @@ export class MainMenu extends Scene
 
         this.cameras.main.setBackgroundColor(0x0f141d);
 
+        // Background music (0s to 39s loop) spanning MainMenu and the intro cutscene
+        let bgm = this.sound.get("menu_bgm");
+        if (!bgm) {
+            bgm = this.sound.add("menu_bgm");
+            bgm.addMarker({
+                name: "loop_segment",
+                start: 0,
+                duration: 39,
+                config: {
+                    loop: true,
+                    volume: 0.5
+                }
+            });
+        }
+
+        if (!bgm.isPlaying) {
+            const playBgm = () => {
+                if (!bgm.isPlaying && (this.scene.isActive("MainMenu") || this.scene.isActive("Cutscene"))) {
+                    bgm.play("loop_segment");
+                }
+            };
+
+            if (this.sound.locked) {
+                this.sound.once("unlocked", playBgm);
+            } else {
+                playBgm();
+            }
+        }
+
         // Title
         const title = this.add.image(width / 2, height / 2, "title").setOrigin(0.5);
         const scalex = width / title.width;
@@ -129,6 +158,7 @@ export class MainMenu extends Scene
             this.registry.set("drivingCompleted", false);
             this.registry.set("runnerCompleted", false);
             this.registry.set("hasSeenMoveTutorial", false);
+            this.registry.set("hasSeenAllCompletedMessage", false);
 
             this.scene.start("Cutscene", INTRO_CUTSCENE);
         } else if (chosen === "Settings") {

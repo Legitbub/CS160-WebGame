@@ -19,6 +19,7 @@ export interface CutsceneSlide {
     // Audio cues
     sfxKey?: string;
     bgmKey?: string;
+    bgmMarker?: string;
 }
 
 export interface CutscenePayload {
@@ -162,8 +163,29 @@ export class Cutscene extends Scene {
 
         // Optional audio cues
         if (slide.sfxKey) this.sound.play(slide.sfxKey);
-        if (slide.bgmKey && !this.sound.get(slide.bgmKey)?.isPlaying) {
-            this.sound.play(slide.bgmKey, { loop: true });
+        if (slide.bgmKey) {
+            let bgm = this.sound.get(slide.bgmKey);
+            if (!bgm) {
+                bgm = this.sound.add(slide.bgmKey);
+                if (slide.bgmMarker === 'loop_segment') {
+                    bgm.addMarker({
+                        name: 'loop_segment',
+                        start: 0,
+                        duration: 39,
+                        config: {
+                            loop: true,
+                            volume: 0.5
+                        }
+                    });
+                }
+            }
+            if (!bgm.isPlaying) {
+                if (slide.bgmMarker) {
+                    bgm.play(slide.bgmMarker);
+                } else {
+                    bgm.play({ loop: true });
+                }
+            }
         }
 
         // Dialogue typing

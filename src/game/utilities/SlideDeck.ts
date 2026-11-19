@@ -12,7 +12,6 @@ export const INTRO_CUTSCENE: CutscenePayload = {
             panY: 10,
             duration: 5000,
             // sfxKey: 'phone_ring',
-            // // bgmKey: 'intro_bgm'
         },
         {
             textureKey: "intro_slide",
@@ -21,9 +20,7 @@ export const INTRO_CUTSCENE: CutscenePayload = {
             zoom: 1,
             panX: 0,
             panY: 0,
-            duration: 1000,
-            // sfxKey: 'phone_ring', 
-            // bgmKey: 'intro_bgm'
+            duration: 1000
         },
         {
             textureKey: "intro_slide",
@@ -32,9 +29,7 @@ export const INTRO_CUTSCENE: CutscenePayload = {
             zoom: 1,
             panX: 0,
             panY: 0,
-            duration: 5000,
-            // sfxKey: 'phone_ring', 
-            // bgmKey: 'intro_bgm'
+            duration: 5000
         },
         {
             textureKey: "intro_slide_2",
@@ -242,6 +237,8 @@ export const ENDING_CUTSCENE: CutscenePayload = {
             zoom: 1,
             panX: 0,
             panY: 0,
+            bgmKey: "menu_bgm",
+            bgmMarker: "loop_segment",
         },
         {
             textureKey: "mom_arrives",

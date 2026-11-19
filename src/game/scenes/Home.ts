@@ -5,6 +5,7 @@ import { CONSTANTS } from '../utilities/Constants';
 import { PlayerSetupOptions, PlayerSpawn } from '../utilities/PlayerSpawn';
 import { DoorDetails, makeDoors } from '../utilities/DoorSpawn';
 import { showTextBox } from '../utilities/TextBox';
+import { ENDING_CUTSCENE } from '../utilities/SlideDeck';
 
 export class Home extends Scene
 {
@@ -26,6 +27,22 @@ export class Home extends Scene
     
     create ()
     {
+        this.sound.stopByKey("menu_bgm");
+
+        const bankCompleted = Boolean(this.registry.get("bankCompleted"));
+        const pizzaCompleted = Boolean(this.registry.get("pizzaCompleted"));
+        const runnerCompleted = Boolean(this.registry.get("runnerCompleted"));
+
+        if (bankCompleted && pizzaCompleted && runnerCompleted) {
+            this.registry.set("bankCompleted", false);
+            this.registry.set("pizzaCompleted", false);
+            this.registry.set("runnerCompleted", false);
+            this.registry.set("hasSeenAllCompletedMessage", false);
+
+            this.scene.start("Cutscene", ENDING_CUTSCENE);
+            return;
+        }
+
         this.camera = this.cameras.main;
         this.camera.roundPixels = true;
 

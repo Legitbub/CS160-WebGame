@@ -40,6 +40,7 @@ export class Preloader extends Scene
     {
         // Main Menu & Player Sprites
         this.load.image("title", "/assets/title.jpg");
+        this.load.audio("menu_bgm", "/get-a-job-jingle-damjustin25.custom_score.mp3");
         this.load.spritesheet("player_stationary", "/assets/stationary Nerdy Guy sprites.png", {
             frameWidth: 32,
             frameHeight: 32
@@ -161,6 +162,54 @@ export class Preloader extends Scene
             repeat: -1
         });
 
-        this.scene.start('MainMenu');
+        const centerX = this.scale.width / 2;
+        const centerY = this.scale.height / 2;
+
+        // "Ready!" text below the progress bar
+        this.add.text(centerX, centerY + 48, 'Ready!', {
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+
+        // Start button below "Ready!"
+        const buttonY = centerY + 116;
+        const buttonBg = this.add.rectangle(centerX, buttonY, 220, 52, 0x1a1a2e)
+            .setStrokeStyle(3, 0xffffff)
+            .setInteractive({ useHandCursor: true });
+
+        const buttonText = this.add.text(centerX, buttonY, 'START', {
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+
+        let started = false;
+        const startGame = () => {
+            if (started) return;
+            started = true;
+            if (this.sound.locked) {
+                this.sound.unlock();
+            }
+            this.scene.start('MainMenu');
+        };
+
+        buttonBg.on('pointerover', () => {
+            buttonBg.setStrokeStyle(3, 0xf39c12);
+            buttonText.setColor('#f39c12');
+            buttonBg.setScale(1.05);
+            buttonText.setScale(1.05);
+        });
+
+        buttonBg.on('pointerout', () => {
+            buttonBg.setStrokeStyle(3, 0xffffff);
+            buttonText.setColor('#ffffff');
+            buttonBg.setScale(1);
+            buttonText.setScale(1);
+        });
+
+        buttonBg.on('pointerdown', startGame);
+        this.input.keyboard?.once('keydown-ENTER', startGame);
+        this.input.keyboard?.once('keydown-SPACE', startGame);
     }
 }

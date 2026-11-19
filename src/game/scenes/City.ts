@@ -4,7 +4,8 @@ import { PlayerCharacter } from "../PlayerCharacter";
 import { CONSTANTS } from "../utilities/Constants"
 import { PlayerSetupOptions, PlayerSpawn } from "../utilities/PlayerSpawn";
 import { DoorDetails, makeDoors } from "../utilities/DoorSpawn";
-import { CITY_DOOR_CUTSCENES, ENDING_CUTSCENE } from "../utilities/SlideDeck";
+import { CITY_DOOR_CUTSCENES } from "../utilities/SlideDeck";
+import { showTextBox } from "../utilities/TextBox";
 
 export class City extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
@@ -26,17 +27,7 @@ export class City extends Scene {
     {
         const bankCompleted = Boolean(this.registry.get("bankCompleted"));
         const pizzaCompleted = Boolean(this.registry.get("pizzaCompleted"));
-        const runnerCompleted = Boolean(this.registry.get("runnerCompleted")
-        );
-
-        if (bankCompleted && pizzaCompleted && runnerCompleted) {
-            this.registry.set("bankCompleted", false);
-            this.registry.set("pizzaCompleted", false);
-            this.registry.set("runnerCompleted", false);
-
-            this.scene.start("Cutscene", ENDING_CUTSCENE);
-            return;
-        }
+        const runnerCompleted = Boolean(this.registry.get("runnerCompleted"));
 
         this.camera = this.cameras.main;
         this.camera.roundPixels = true;
@@ -78,6 +69,21 @@ export class City extends Scene {
             cutscenes: CITY_DOOR_CUTSCENES,
             blockedDoors: blockedDoors
         });
+
+        if (bankCompleted && pizzaCompleted && runnerCompleted && !this.registry.get("hasSeenAllCompletedMessage")) {
+            this.registry.set("hasSeenAllCompletedMessage", true);
+            this.camera.centerOn(this.player.x, this.player.y);
+            this.camera.preRender();
+            showTextBox({
+                scene: this,
+                player: this.player,
+                pages: [
+                    "Man, that was a lot of hard work!",
+                    "No luck finding a long term job. Guess I should head home..."
+                ],
+                position: "center"
+            });
+        }
 
         EventBus.emit('current-scene-ready', this);
     }

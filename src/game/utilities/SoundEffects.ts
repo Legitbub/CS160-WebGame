@@ -426,3 +426,42 @@ export function playDoorSound(scene: Phaser.Scene): void {
     // Stroke 2 ("-CHK!" at 340ms, 220ms long): Distinct pause before the deep downward door lock
     playStroke(now + 0.34, 0.22, 1950, 780, 185, 55, 0.52);
 }
+
+const PIZZA_BGM_KEY = "pizza_bgm";
+
+export function playPizzaBgm(scene: Phaser.Scene): void {
+    const start = () => {
+        if (!scene.scene.isActive()) return;
+        const context = (scene.sound as Phaser.Sound.WebAudioSoundManager).context;
+        if (context?.state === "suspended") {
+            context.resume().catch(() => {});
+        }
+        if (!scene.cache.audio.exists(PIZZA_BGM_KEY)) return;
+        const existing = scene.sound.get(PIZZA_BGM_KEY);
+        if (existing?.isPlaying) return;
+        const config = { loop: true, volume: 0.35 };
+        if (existing) {
+            existing.play(config);
+            return;
+        }
+        scene.sound.play(PIZZA_BGM_KEY, config);
+    };
+
+    if (scene.sound.locked) {
+        scene.sound.once("unlocked", start);
+        return;
+    }
+
+    // Scene.create runs while the scene is still "creating", so isActive() is false
+    // until that method returns. Wait for the create event before starting playback.
+    if (!scene.scene.isActive()) {
+        scene.events.once("create", start);
+        return;
+    }
+
+    start();
+}
+
+export function stopPizzaBgm(scene: Phaser.Scene): void {
+    scene.sound.get(PIZZA_BGM_KEY)?.stop();
+}

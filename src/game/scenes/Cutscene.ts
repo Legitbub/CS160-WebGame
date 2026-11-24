@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Scene, Textures } from 'phaser';
+import { stopPizzaBgm } from "../utilities/SoundEffects";
 
 export interface CutsceneSlide {
     // Asset keys loaded during preload or boot
@@ -54,6 +55,7 @@ export class Cutscene extends Scene {
     }
 
     init(data: CutscenePayload) {
+        stopPizzaBgm(this);
         this.slides = data.slides || [];
         this.nextSceneKey = data.nextSceneKey;
         this.nextSceneData = data.nextSceneData;

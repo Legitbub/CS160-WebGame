@@ -1,6 +1,7 @@
 import * as Phaser from "phaser";
 import { Scene } from "phaser";
 import { EventBus } from "../EventBus";
+import { playPizzaBgm, stopPizzaBgm } from "../utilities/SoundEffects";
 
 const PEEL = { x: 240, y: 640 };
 const OVEN = { x: 660, y: 530, width: 250, height: 230 };
@@ -71,6 +72,7 @@ export class PizzaOven extends Scene {
         }).setOrigin(0.5).setDepth(20).setVisible(false);
 
         this.spawnPizza();
+        playPizzaBgm(this);
 
         this.input.on("drag", (_pointer: Phaser.Input.Pointer, obj: Phaser.GameObjects.Container, x: number, y: number) => {
             if (obj !== this.pizza || this.baking || this.packing) return;
@@ -228,6 +230,7 @@ export class PizzaOven extends Scene {
 
     private leaveToCity() {
         this.bakeTimer?.remove(false);
+        stopPizzaBgm(this);
         this.registry.set("pizzaCompleted", true);
         this.scene.start("City", { spawnAt: { x: 2, y: 16 } });
     }

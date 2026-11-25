@@ -76,6 +76,7 @@ export class Preloader extends Scene
         this.load.image("player_house", "/scene_tilemaps/Player_House_Tileset/House resized.png");
         this.load.image("urban_city", "/scene_tilemaps/Urban_City_Tileset/Urban City Tileset Basic 32x32 Dlou Saiyan.png");
         this.load.tilemapTiledJSON("city_map", "/assets/city_scene.json");
+        this.load.audio("city_bgm", "/running-in-job-city-damjustin25.custom_score.mp3");
 
         // Bank Battle Scene Assets
         this.load.image("floors", "/scene_tilemaps/Bank_Isometric_Tileset/Floors.png");

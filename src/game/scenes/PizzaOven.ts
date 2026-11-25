@@ -96,18 +96,6 @@ export class PizzaOven extends Scene {
             this.pizza.setPosition(this.toX(home.x), this.toY(home.y));
         });
 
-        const button = this.add.text(24, 20, "Exit", {
-            fontFamily: "Courier New, monospace",
-            fontSize: "22px",
-            color: "#ecf0f1",
-            backgroundColor: "#0f141d",
-            padding: { x: 12, y: 6 }
-        }).setOrigin(0, 0).setDepth(30).setInteractive({ useHandCursor: true });
-
-        button.on("pointerover", () => button.setColor("#f39c12"));
-        button.on("pointerout", () => button.setColor("#ecf0f1"));
-        button.on("pointerdown", () => this.leaveToCity());
-
         this.input.keyboard?.on("keydown", () => {
             if (this.shiftOver) this.leaveToCity();
         });

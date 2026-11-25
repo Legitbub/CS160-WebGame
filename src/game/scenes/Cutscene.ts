@@ -176,7 +176,7 @@ export class Cutscene extends Scene {
                         duration: 39,
                         config: {
                             loop: true,
-                            volume: 0.5
+                            volume: 1
                         }
                     });
                 }

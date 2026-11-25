@@ -14,13 +14,6 @@ function App()
         setCurrentSceneKey(scene.scene.key);
     };
 
-    // React button to manually start the game scene if desired
-    const handleStartGame = () => {
-        if (phaserRef.current && phaserRef.current.scene) {
-            phaserRef.current.scene.scene.start('Home');
-        }
-    };
-
     return (
         <div id="app" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px' }}>
             <PhaserGame ref={phaserRef} currentActiveScene={onSceneChange} />
@@ -29,24 +22,6 @@ function App()
                 <span style={{ fontFamily: 'monospace', fontSize: '14px', color: '#888' }}>
                     Active Scene: <strong>{currentSceneKey}</strong>
                 </span>
-
-                {currentSceneKey === 'MainMenu' && (
-                    <button 
-                        className="button"
-                        onClick={handleStartGame}
-                        style={{
-                            padding: '8px 16px',
-                            cursor: 'pointer',
-                            fontFamily: 'monospace',
-                            backgroundColor: '#e74c3c',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '4px'
-                        }}
-                    >
-                        Start Game (React Bridge)
-                    </button>
-                )}
             </div>
         </div>
     );

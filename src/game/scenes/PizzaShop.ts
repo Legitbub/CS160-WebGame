@@ -155,30 +155,14 @@ export class PizzaShop extends Scene {
         });
         playPizzaBgm(this);
 
-        const exitButton = this.addExitButton();
-        this.addTrashButton(exitButton.x + exitButton.width + 12);
+        this.addTrashButton();
         this.input.keyboard?.on("keydown-ESC", () => this.leaveToCity());
 
         EventBus.emit("current-scene-ready", this);
     }
 
-    private addExitButton() {
-        const button = this.add.text(24, 20, "Exit", {
-            fontFamily: "Courier New, monospace",
-            fontSize: "22px",
-            color: "#ecf0f1",
-            backgroundColor: "#0f141d",
-            padding: { x: 12, y: 6 }
-        }).setOrigin(0, 0).setDepth(30).setInteractive({ useHandCursor: true });
-
-        button.on("pointerover", () => button.setColor("#f39c12"));
-        button.on("pointerout", () => button.setColor("#ecf0f1"));
-        button.on("pointerdown", () => this.leaveToCity());
-        return button;
-    }
-
-    private addTrashButton(x: number) {
-        const button = this.add.text(x, 20, "Trash", {
+    private addTrashButton() {
+        const button = this.add.text(24, 20, "Trash", {
             fontFamily: "Courier New, monospace",
             fontSize: "22px",
             color: "#ecf0f1",

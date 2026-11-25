@@ -32,6 +32,29 @@ export class City extends Scene {
         this.camera = this.cameras.main;
         this.camera.roundPixels = true;
 
+        // Play City background music (0s to 72s loop) and stop when leaving City
+        let cityBgm = this.sound.get("city_bgm");
+        if (!cityBgm) {
+            cityBgm = this.sound.add("city_bgm");
+            cityBgm.addMarker({
+                name: "city_loop",
+                start: 0,
+                duration: 72,
+                config: {
+                    loop: true,
+                    volume: 0.7
+                }
+            });
+        }
+
+        if (!cityBgm.isPlaying) {
+            cityBgm.play("city_loop");
+        }
+
+        this.events.once("shutdown", () => {
+            this.sound.stopByKey("city_bgm");
+        });
+
         // Create map and tileset
         const tilemap = this.make.tilemap({key: "city_map"});
         const tileset1 = tilemap.addTilesetImage("Simple City", "city")!;

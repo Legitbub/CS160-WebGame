@@ -386,7 +386,7 @@ export class BankBattleLogic {
         this.highlightedSquares = [];
         this.view.updateHighlights();
 
-        const damage = attacker.hasGunAttack ? 80 : (attacker.isPlayer ? 95 : 25);
+        const damage = attacker.hasGunAttack ? 80 : (attacker.isPlayer ? 50 : 25);
         let bulletproofVestTriggered = false;
 
         this.view.animateAttack(

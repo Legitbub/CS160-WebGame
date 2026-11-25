@@ -58,6 +58,28 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
         this.moveTile(0, 1);
     }
 
+    public exitDoorStep(targetTileX: number, targetTileY: number, onComplete?: () => void) {
+        this.isMoving = true;
+        this.currentDirection = "down";
+        this.anims.play("player-down", true);
+
+        const targetPixelX = targetTileX * CONSTANTS.TILE_SIZE + CONSTANTS.TILE_SIZE / 2;
+        const targetPixelY = targetTileY * CONSTANTS.TILE_SIZE + CONSTANTS.TILE_SIZE / 2;
+
+        this.scene.tweens.add({
+            targets: this,
+            x: targetPixelX,
+            y: targetPixelY,
+            duration: CONSTANTS.MOVE_STEP_TIME,
+            ease: 'Linear',
+            onComplete: () => {
+                this.isMoving = false;
+                this.stopWalkingAnimation();
+                onComplete?.();
+            }
+        });
+    }
+
     // Handle player input for movement
     update() {
         if (!this.arrows || this.isMoving || this.isFrozen) return;

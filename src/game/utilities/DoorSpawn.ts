@@ -66,6 +66,7 @@ export function makeDoors({scene, tilemap, player, layer, fadeTime = 750, cutsce
             }
 
             fading = true;
+            player.setFrozen(true);
             playDoorSound(scene);
             scene.cameras.main.fadeOut(fadeTime, 0, 0, 0);
             scene.cameras.main.once('camerafadeoutcomplete', () => {

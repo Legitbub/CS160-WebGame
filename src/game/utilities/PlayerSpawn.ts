@@ -8,16 +8,25 @@ export interface PlayerSetupOptions {
     wallsLayer?: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
     zoom?: number;
     spawnTile?: { x: number; y: number };
+    onSpawnComplete?: () => void;
 }
 
 /**
  * Create the player sprite within the scene according to the given position
  * and set it so that it bumps into walls. The camera should follow the character.
- * Spawns in center of scene by default. 
+ * Spawns in center of scene by default. When spawning from a door (spawnTile provided),
+ * spawns one tile above and walks down onto the target spawn tile.
  */
-export function PlayerSpawn({ scene, map, wallsLayer, zoom = 3, spawnTile }: PlayerSetupOptions): PlayerCharacter {
+export function PlayerSpawn({ scene, map, wallsLayer, zoom = 3, spawnTile, onSpawnComplete }: PlayerSetupOptions): PlayerCharacter {
+    const isDoorSpawn = Boolean(
+        spawnTile &&
+        spawnTile.x !== undefined &&
+        spawnTile.y !== undefined &&
+        spawnTile.y > 0
+    );
+
     const tileX = spawnTile ? spawnTile.x : Math.floor(map.width / 2);
-    const tileY = spawnTile ? spawnTile.y : Math.floor(map.height / 2);
+    const tileY = isDoorSpawn ? spawnTile!.y - 1 : (spawnTile ? spawnTile.y : Math.floor(map.height / 2));
 
     const playerX = tileX * CONSTANTS.TILE_SIZE + CONSTANTS.TILE_SIZE / 2;
     const playerY = tileY * CONSTANTS.TILE_SIZE + CONSTANTS.TILE_SIZE / 2;
@@ -43,6 +52,12 @@ export function PlayerSpawn({ scene, map, wallsLayer, zoom = 3, spawnTile }: Pla
     const deadzoneWidth = Math.max(CONSTANTS.TILE_SIZE, visibleWidth - padding * 2);
     const deadzoneHeight = Math.max(CONSTANTS.TILE_SIZE, visibleHeight - padding * 2);
     scene.cameras.main.setDeadzone(deadzoneWidth, deadzoneHeight);
+
+    if (isDoorSpawn) {
+        player.exitDoorStep(spawnTile!.x, spawnTile!.y, onSpawnComplete);
+    } else {
+        onSpawnComplete?.();
+    }
 
     return player;
 }

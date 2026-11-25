@@ -70,7 +70,23 @@ export class City extends Scene {
             scene: this,
             map: tilemap,
             wallsLayer: this.objectLayer,
-            spawnTile: this.spawnAt
+            spawnTile: this.spawnAt,
+            onSpawnComplete: () => {
+                if (bankCompleted && pizzaCompleted && runnerCompleted && !this.registry.get("hasSeenAllCompletedMessage")) {
+                    this.registry.set("hasSeenAllCompletedMessage", true);
+                    this.camera.centerOn(this.player.x, this.player.y);
+                    this.camera.preRender();
+                    showTextBox({
+                        scene: this,
+                        player: this.player,
+                        pages: [
+                            "Man, that was a lot of hard work!",
+                            "No luck finding a long term job. Guess I should head home..."
+                        ],
+                        position: "center"
+                    });
+                }
+            }
         });
 
         const blockedDoors: Record<string, string | string[]> = {};
@@ -92,21 +108,6 @@ export class City extends Scene {
             cutscenes: CITY_DOOR_CUTSCENES,
             blockedDoors: blockedDoors
         });
-
-        if (bankCompleted && pizzaCompleted && runnerCompleted && !this.registry.get("hasSeenAllCompletedMessage")) {
-            this.registry.set("hasSeenAllCompletedMessage", true);
-            this.camera.centerOn(this.player.x, this.player.y);
-            this.camera.preRender();
-            showTextBox({
-                scene: this,
-                player: this.player,
-                pages: [
-                    "Man, that was a lot of hard work!",
-                    "No luck finding a long term job. Guess I should head home..."
-                ],
-                position: "center"
-            });
-        }
 
         EventBus.emit('current-scene-ready', this);
     }
